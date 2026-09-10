@@ -37,6 +37,7 @@ export function generateSidebar(rootPath: string, options: GenerateSidebarOption
     configFilenames: options.configFilenames ?? ['.sidebar'],
     excludeFilenames: options.excludeFilenames ?? ['.exclude'],
     collapsed: options.collapsed ?? false,
+    flattenSinglePage: options.flattenSinglePage ?? false,
     verbose: options.verbose ?? false,
   };
 
@@ -228,7 +229,7 @@ function buildDirectorySidebarItem(
       );
       if (child) items.push(child);
     }
-    return items.length ? { text: defaultTitle, collapsed: ctx.options.collapsed, items } : null;
+    return buildGroupOrLeaf(ctx, defaultTitle, undefined, items);
   }
 
   const title = resolveDirectoryTitle(ctx, dirPath, defaultTitle);
@@ -251,10 +252,34 @@ function buildDirectorySidebarItem(
   }
   items.push(...collectChildEntries(ctx, dirPath, true, currentDepth, directives));
 
+  return buildGroupOrLeaf(ctx, title, link, items);
+}
+
+/**
+ * Builds the `SidebarItem` for a directory from its resolved title, its own
+ * link (if it has a landing page), and its already-built child items.
+ *
+ * When `flattenSinglePage` is on and the directory has exactly one visible
+ * entry that isn't itself a group (typically just its own landing page),
+ * that single entry is collapsed into a plain `{ text, link }` leaf using
+ * the directory's own title, instead of a one-item group — matching how a
+ * hand-written sidebar would usually represent a single-page section.
+ */
+function buildGroupOrLeaf(
+  ctx: GenerateContext,
+  text: string,
+  link: string | undefined,
+  items: SidebarItem[],
+): SidebarItem | null {
   if (!items.length) return null;
 
+  const [onlyItem] = items;
+  if (ctx.options.flattenSinglePage && items.length === 1 && onlyItem && !onlyItem.items) {
+    return { text, link: onlyItem.link ?? link };
+  }
+
   return {
-    text: title,
+    text,
     ...(link ? { link } : {}),
     items,
     collapsed: ctx.options.collapsed,

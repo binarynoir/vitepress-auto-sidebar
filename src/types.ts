@@ -24,6 +24,13 @@ export interface GenerateSidebarOptions {
   excludeFilenames?: string[];
   /** Initial `collapsed` state applied to generated section headers. Default: false. */
   collapsed?: boolean;
+  /**
+   * Collapse a subdirectory into a single plain link inside its parent group,
+   * instead of promoting it to its own sibling group, whenever that
+   * subdirectory has exactly one visible entry (typically just its landing
+   * page). Default: false — every subdirectory always becomes its own group.
+   */
+  flattenSinglePage?: boolean;
   /** Log what the generator is doing as it walks the docs tree. Default: false. */
   verbose?: boolean;
 }
@@ -35,6 +42,7 @@ export interface ResolvedSidebarOptions {
   configFilenames: string[];
   excludeFilenames: string[];
   collapsed: boolean;
+  flattenSinglePage: boolean;
   verbose: boolean;
 }
 

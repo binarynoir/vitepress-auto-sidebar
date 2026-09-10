@@ -53,14 +53,15 @@ A directory's landing page — `index.md` if present, otherwise `README.md`
 
 ## Options
 
-| Option             | Default        | Description                                                     |
-| ------------------ | -------------- | --------------------------------------------------------------- |
-| `maxDepth`         | `3`            | How many directory levels deep to recurse.                      |
-| `maxTitleLength`   | `50`           | Truncate generated titles beyond this length.                   |
-| `configFilenames`  | `['.sidebar']` | Filenames checked for per-directory ordering config.            |
-| `excludeFilenames` | `['.exclude']` | Filenames checked for per-directory exclusion rules.            |
-| `collapsed`        | `false`        | Initial `collapsed` state applied to generated section headers. |
-| `verbose`          | `false`        | Log each directory as it's processed.                           |
+| Option              | Default        | Description                                                                                                                                                           |
+| ------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `maxDepth`          | `3`            | How many directory levels deep to recurse.                                                                                                                            |
+| `maxTitleLength`    | `50`           | Truncate generated titles beyond this length.                                                                                                                         |
+| `configFilenames`   | `['.sidebar']` | Filenames checked for per-directory ordering config.                                                                                                                  |
+| `excludeFilenames`  | `['.exclude']` | Filenames checked for per-directory exclusion rules.                                                                                                                  |
+| `collapsed`         | `false`        | Initial `collapsed` state applied to generated section headers.                                                                                                       |
+| `flattenSinglePage` | `false`        | Collapse a subdirectory into a plain link in its parent group instead of its own sibling group, when it has only one visible entry (typically just its landing page). |
+| `verbose`           | `false`        | Log each directory as it's processed.                                                                                                                                 |
 
 ## `.sidebar` files
 

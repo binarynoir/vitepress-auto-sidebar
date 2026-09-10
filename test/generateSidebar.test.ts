@@ -287,6 +287,61 @@ describe('collapsed option', () => {
   });
 });
 
+describe('flattenSinglePage option', () => {
+  it('is off by default, so a single-page subdirectory still becomes its own group', () => {
+    const sidebar = build({
+      products: { 'README.md': '# Products', widgets: { 'README.md': '# Widgets' } },
+    });
+    const widgets = sidebar['/products/'].find((i) => i.text === 'Widgets');
+    expect(widgets).toMatchObject({
+      link: '/products/widgets/',
+      items: [{ text: 'Widgets', link: '/products/widgets/' }],
+    });
+  });
+
+  it('collapses a single-page subdirectory into a plain link when enabled', () => {
+    const sidebar = build(
+      { products: { 'README.md': '# Products', widgets: { 'README.md': '# Widgets' } } },
+      { flattenSinglePage: true },
+    );
+    const widgets = sidebar['/products/'].find((i) => i.text === 'Widgets');
+    expect(widgets).toEqual({ text: 'Widgets', link: '/products/widgets/' });
+  });
+
+  it('does not flatten a subdirectory that has more than one visible entry', () => {
+    const sidebar = build(
+      {
+        products: {
+          'README.md': '# Products',
+          widgets: { 'README.md': '# Widgets', 'pricing.md': '# Pricing' },
+        },
+      },
+      { flattenSinglePage: true },
+    );
+    const widgets = sidebar['/products/'].find((i) => i.text === 'Widgets');
+    expect(widgets?.items).toHaveLength(2);
+  });
+
+  it('does not flatten a subdirectory whose only child is itself a multi-page group', () => {
+    const sidebar = build(
+      {
+        products: {
+          'README.md': '# Products',
+          widgets: {
+            gadgets: { 'README.md': '# Gadgets', 'one.md': '# One', 'two.md': '# Two' },
+          },
+        },
+      },
+      { flattenSinglePage: true },
+    );
+    // widgets/ has no landing page of its own and exactly one child (the gadgets/ group),
+    // but that child is itself a multi-item group and must stay a nested group, not be
+    // flattened away.
+    const widgets = sidebar['/products/'].find((i) => i.text === 'Widgets');
+    expect(widgets?.items).toEqual([expect.objectContaining({ text: 'Gadgets', items: expect.any(Array) })]);
+  });
+});
+
 describe('sidebar.json overrides', () => {
   it('uses a hand-authored sidebar.json verbatim for that section', () => {
     const custom = { '/products/': [{ text: 'Hand Rolled', link: '/products/' }] };

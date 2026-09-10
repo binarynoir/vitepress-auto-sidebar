@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `flattenSinglePage` option: collapses a subdirectory that has only one visible entry (typically just its own landing page) into a plain link in its parent group, instead of always promoting it to its own sibling group.
+
 ### Fixed
 
 - `generateSidebar` no longer emits a spurious `/public/` section from VitePress's static-assets root directory (`docs/public/`), which was being treated as an ordinary content directory.

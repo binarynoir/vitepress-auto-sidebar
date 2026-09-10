@@ -148,16 +148,15 @@ export function readSidebarConfigFile(directoryPath: string, configFilenames: st
       return items;
     }
   } catch (error) {
-    console.error(`[vitepress-auto-sidebar] failed to read sidebar config in ${directoryPath}: ${getErrorMessage(error)}`);
+    console.error(
+      `[vitepress-auto-sidebar] failed to read sidebar config in ${directoryPath}: ${getErrorMessage(error)}`,
+    );
   }
   return [];
 }
 
 /** Reads `.hide` / `.hideall` directives out of a directory's `.sidebar` file. */
-export function checkHideDirective(
-  directoryPath: string,
-  configFilenames: string[],
-): { hide: boolean; skip: boolean } {
+export function checkHideDirective(directoryPath: string, configFilenames: string[]): { hide: boolean; skip: boolean } {
   try {
     for (const filename of configFilenames) {
       const configFilePath = path.posix.join(directoryPath, filename);
@@ -174,7 +173,9 @@ export function checkHideDirective(
     }
     return { hide: false, skip: false };
   } catch (error) {
-    console.error(`[vitepress-auto-sidebar] failed to check hide directive in ${directoryPath}: ${getErrorMessage(error)}`);
+    console.error(
+      `[vitepress-auto-sidebar] failed to check hide directive in ${directoryPath}: ${getErrorMessage(error)}`,
+    );
     return { hide: false, skip: false };
   }
 }

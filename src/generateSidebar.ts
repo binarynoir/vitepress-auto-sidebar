@@ -103,7 +103,11 @@ function buildSectionForTopDir(ctx: GenerateContext, fsDir: string, currentDepth
   const directives = parseSidebarDirectives(configItems);
   const ellipsisIndex = directives.findIndex((i) => i.name === '...');
 
-  const rootTitle = resolveDirectoryTitle(ctx, fsDir, formatTitle(path.posix.basename(fsDir), ctx.options.maxTitleLength));
+  const rootTitle = resolveDirectoryTitle(
+    ctx,
+    fsDir,
+    formatTitle(path.posix.basename(fsDir), ctx.options.maxTitleLength),
+  );
 
   const indexFile = getIndexFilename(fullDir);
   const indexRelPath = indexFile ? path.posix.join(fsDir, indexFile) : null;
@@ -151,7 +155,12 @@ function buildSectionForTopDir(ctx: GenerateContext, fsDir: string, currentDepth
       : [];
 
   const buildChildSection = (dir: string): SidebarItem | null =>
-    buildDirectorySidebarItem(ctx, path.posix.join(fsDir, dir), formatTitle(dir, ctx.options.maxTitleLength), currentDepth + 1);
+    buildDirectorySidebarItem(
+      ctx,
+      path.posix.join(fsDir, dir),
+      formatTitle(dir, ctx.options.maxTitleLength),
+      currentDepth + 1,
+    );
 
   const sectionItems: SidebarItem[] = isRootHidden ? [] : [rootItem];
   const processedDirs = new Set<string>();
@@ -206,7 +215,9 @@ function buildDirectorySidebarItem(
 
   if (hide) {
     // Don't show this directory itself, but keep surfacing its children.
-    const directives = parseSidebarDirectives(readSidebarConfigFile(fullDir, ctx.options.configFilenames, ctx.options.verbose));
+    const directives = parseSidebarDirectives(
+      readSidebarConfigFile(fullDir, ctx.options.configFilenames, ctx.options.verbose),
+    );
     const items: SidebarItem[] = [];
     for (const sub of listChildDirectories(ctx, dirPath, directives)) {
       const child = buildDirectorySidebarItem(
@@ -226,7 +237,9 @@ function buildDirectorySidebarItem(
   const hasIndex = !!(indexFile && indexRelPath && !isExcluded(indexRelPath, ctx.exclusions));
   const link = hasIndex ? toUrlDir(dirPath) : undefined;
 
-  const directives = parseSidebarDirectives(readSidebarConfigFile(fullDir, ctx.options.configFilenames, ctx.options.verbose));
+  const directives = parseSidebarDirectives(
+    readSidebarConfigFile(fullDir, ctx.options.configFilenames, ctx.options.verbose),
+  );
 
   const items: SidebarItem[] = [];
   if (hasIndex && indexFile && link) {

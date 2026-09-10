@@ -9,14 +9,16 @@ npm install
 ## Workflow
 
 ```sh
-npm run typecheck   # tsc --noEmit
-npm run lint        # eslint .
-npm test            # vitest run
-npm run build        # tsup -> dist/
+npm run typecheck     # tsc --noEmit
+npm run lint          # eslint .
+npm run format:check  # prettier --check .
+npm test              # vitest run
+npm run build          # tsup -> dist/
 ```
 
-Run all four (or `npm run test:watch` while iterating) before opening a PR —
-CI runs the same checks against Node 18, 20, and 22.
+Run all five (or `npm run test:watch` / `npm run format` while iterating)
+before opening a PR — CI runs the same checks against Node 18, 20, and 22,
+and `main` is protected: changes only land through a PR with CI passing.
 
 ## Guidelines
 
@@ -26,6 +28,8 @@ CI runs the same checks against Node 18, 20, and 22.
 - Follow the existing naming conventions (see `src/` — full descriptive
   identifiers, `is`/`to`/`get`-prefixed helpers) rather than introducing new
   patterns.
+- Add an entry under `[Unreleased]` in [CHANGELOG.md](CHANGELOG.md) for any
+  user-facing change.
 
 ## Releasing
 

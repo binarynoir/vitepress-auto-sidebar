@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `generateSidebar` no longer emits a spurious `/public/` section from VitePress's static-assets root directory (`docs/public/`), which was being treated as an ordinary content directory.
+
 ## [0.2.1] - 2026-09-10
 
 ### Fixed

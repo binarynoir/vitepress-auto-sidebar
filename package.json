@@ -13,11 +13,11 @@
   "author": "BinaryNoir",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/BinaryNoir/vitepress-auto-sidebar.git"
+    "url": "git+https://github.com/binarynoir/vitepress-auto-sidebar.git"
   },
-  "homepage": "https://github.com/BinaryNoir/vitepress-auto-sidebar#readme",
+  "homepage": "https://github.com/binarynoir/vitepress-auto-sidebar#readme",
   "bugs": {
-    "url": "https://github.com/BinaryNoir/vitepress-auto-sidebar/issues"
+    "url": "https://github.com/binarynoir/vitepress-auto-sidebar/issues"
   },
   "type": "module",
   "sideEffects": false,

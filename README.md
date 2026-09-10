@@ -1,7 +1,7 @@
 # vitepress-auto-sidebar
 
 [![npm version](https://img.shields.io/npm/v/%40binarynoir%2Fvitepress-auto-sidebar.svg)](https://www.npmjs.com/package/@binarynoir/vitepress-auto-sidebar)
-[![CI](https://github.com/BinaryNoir/vitepress-auto-sidebar/actions/workflows/ci.yml/badge.svg)](https://github.com/BinaryNoir/vitepress-auto-sidebar/actions/workflows/ci.yml)
+[![CI](https://github.com/binarynoir/vitepress-auto-sidebar/actions/workflows/ci.yml/badge.svg)](https://github.com/binarynoir/vitepress-auto-sidebar/actions/workflows/ci.yml)
 [![license](https://img.shields.io/npm/l/%40binarynoir%2Fvitepress-auto-sidebar.svg)](LICENSE)
 
 Generate a [VitePress 2](https://vitepress.dev) multi-sidebar config by scanning

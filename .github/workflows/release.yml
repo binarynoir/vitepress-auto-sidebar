@@ -35,8 +35,8 @@ jobs:
       - run: npm test
       - run: npm run build
 
-      - name: Stage publish to npm
-        run: npm stage publish --provenance --access public
+      - name: Publish to npm
+        run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -44,7 +44,3 @@ jobs:
         run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Remind about npm approval
-        run: |
-          echo "::notice::npm publish is staged, not yet public. Run 'npm stage list' then 'npm stage approve <stage-id>' (2FA required) to finish."

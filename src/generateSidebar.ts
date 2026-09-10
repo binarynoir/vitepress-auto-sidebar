@@ -25,8 +25,10 @@ interface GenerateContext {
 
 /**
  * Scans `rootPath` and builds a VitePress `themeConfig.sidebar` multi-sidebar
- * config: one top-level directory becomes one URL-prefixed section, whose
- * subdirectories become sibling groups within that section.
+ * config: one top-level directory becomes one URL-prefixed section. A
+ * subdirectory of it is promoted to its own sibling group only if it has
+ * more than one visible entry; a single-page one is nested as a plain link
+ * in its parent's group instead (see `flattenSinglePage`).
  *
  * See the README for the `.sidebar` / `.exclude` config file syntax.
  */
@@ -116,6 +118,12 @@ function buildSectionForTopDir(ctx: GenerateContext, fsDir: string, currentDepth
   const indexConfig = indexFile ? directives.find((p) => p.name.toLowerCase() === indexFile.toLowerCase()) : undefined;
   const indexHidden = !!indexConfig?.hidden;
 
+  // Subdirectories that flatten to a plain link (flattenSinglePage) nest here,
+  // alongside root-level files; ones that stay a real multi-page group come
+  // back as `deferredGroups` and get promoted to their own sibling entries
+  // below instead, same as sidebar-key content.
+  const { items: nestedRootEntries, deferredGroups } = collectChildEntries(ctx, fsDir, false, currentDepth, directives);
+
   const rootChildren: SidebarItem[] = [];
   if (hasIndex && indexFile && !indexHidden) {
     const explicitTitle = indexConfig?.title ?? getMarkdownTitle(path.posix.join(fullDir, indexFile));
@@ -124,7 +132,7 @@ function buildSectionForTopDir(ctx: GenerateContext, fsDir: string, currentDepth
       link: urlDir,
     });
   }
-  rootChildren.push(...collectChildEntries(ctx, fsDir, false, currentDepth, directives));
+  rootChildren.push(...nestedRootEntries);
 
   const rootItem: SidebarItem = {
     text: rootTitle,
@@ -147,21 +155,35 @@ function buildSectionForTopDir(ctx: GenerateContext, fsDir: string, currentDepth
     specifiedOrder.set(item.name, index);
   });
 
-  const hiddenDirNames = new Set(
-    directives.filter((i) => i.hidden && !i.isWebLink && i.name !== '...').map((i) => i.name.toLowerCase()),
-  );
-  const allDirectories =
-    currentDepth < ctx.options.maxDepth
-      ? listChildDirectories(ctx, fsDir, directives).filter((dir) => !hiddenDirNames.has(dir.toLowerCase()))
-      : [];
-
-  const buildChildSection = (dir: string): SidebarItem | null =>
-    buildDirectorySidebarItem(
-      ctx,
-      path.posix.join(fsDir, dir),
-      formatTitle(dir, ctx.options.maxTitleLength),
-      currentDepth + 1,
+  // Directories promoted to their own sibling section entries: with
+  // flattenSinglePage on, only the ones collectChildEntries deferred above
+  // (real multi-page groups); with it off, every visible subdirectory, as
+  // before — collectChildEntries doesn't consider directories at all in that
+  // case, so deferredGroups is always empty and this falls back to building
+  // them directly.
+  let promotedGroups: Map<string, SidebarItem>;
+  if (ctx.options.flattenSinglePage) {
+    promotedGroups = deferredGroups;
+  } else {
+    promotedGroups = new Map();
+    const hiddenDirNames = new Set(
+      directives.filter((i) => i.hidden && !i.isWebLink && i.name !== '...').map((i) => i.name.toLowerCase()),
     );
+    if (currentDepth < ctx.options.maxDepth) {
+      for (const dir of listChildDirectories(ctx, fsDir, directives)) {
+        if (hiddenDirNames.has(dir.toLowerCase())) continue;
+        const child = buildDirectorySidebarItem(
+          ctx,
+          path.posix.join(fsDir, dir),
+          formatTitle(dir, ctx.options.maxTitleLength),
+          currentDepth + 1,
+        );
+        if (child) promotedGroups.set(dir, child);
+      }
+    }
+  }
+  const allDirectories = [...promotedGroups.keys()];
+  const buildChildSection = (dir: string): SidebarItem | null => promotedGroups.get(dir) ?? null;
 
   const sectionItems: SidebarItem[] = isRootHidden ? [] : [rootItem];
   const processedDirs = new Set<string>();
@@ -250,7 +272,7 @@ function buildDirectorySidebarItem(
       items.push({ text: explicitTitle ? truncateTitle(explicitTitle, ctx.options.maxTitleLength) : title, link });
     }
   }
-  items.push(...collectChildEntries(ctx, dirPath, true, currentDepth, directives));
+  items.push(...collectChildEntries(ctx, dirPath, true, currentDepth, directives).items);
 
   return buildGroupOrLeaf(ctx, title, link, items);
 }
@@ -286,10 +308,31 @@ function buildGroupOrLeaf(
   };
 }
 
+/** Return value of {@link collectChildEntries}. */
+interface ChildEntries {
+  /** Files, web links, and (when eligible) subdirectories to render in place. */
+  items: SidebarItem[];
+  /**
+   * Only populated when `recursive` is false: subdirectories that came back
+   * as a real multi-item group rather than a flattened leaf, keyed by name.
+   * A non-recursive caller can't nest a whole group here (this pass produces
+   * one flat list), so it hands these back for the caller to promote to its
+   * own sibling section entries instead.
+   */
+  deferredGroups: Map<string, SidebarItem>;
+}
+
 /**
- * Gathers a directory's markdown files (as leaf items), its inline web links,
- * and — when `recursive` — its subdirectories (as nested groups), all sorted
- * per `directives`.
+ * Gathers a directory's markdown files (as leaf items) and its inline web
+ * links, all sorted per `directives`. Subdirectories are handled differently
+ * depending on `recursive`:
+ *
+ * - `recursive: true` — every subdirectory is nested in place, as a group or
+ *   a flattened leaf (see {@link buildGroupOrLeaf}).
+ * - `recursive: false` — only subdirectories that flatten to a leaf (when
+ *   `flattenSinglePage` is on) are nested in place; ones that stay a real
+ *   group come back via `deferredGroups` instead, since a top-level section
+ *   promotes those to its own sibling entries rather than nesting them.
  */
 function collectChildEntries(
   ctx: GenerateContext,
@@ -297,9 +340,10 @@ function collectChildEntries(
   recursive: boolean,
   currentDepth: number,
   directives: SidebarDirective[],
-): SidebarItem[] {
+): ChildEntries {
   const { maxDepth, maxTitleLength } = ctx.options;
   const fullDir = path.posix.join(ctx.rootPath, dirPath);
+  const deferredGroups = new Map<string, SidebarItem>();
 
   const hiddenNames = new Set(
     directives.filter((i) => i.hidden && !i.isWebLink && i.name !== '...').map((i) => i.name.toLowerCase()),
@@ -319,8 +363,13 @@ function collectChildEntries(
     dirEntries = fs.readdirSync(fullDir);
   } catch (error) {
     console.error(`[vitepress-auto-sidebar] failed to read ${fullDir}: ${getErrorMessage(error)}`);
-    return [];
+    return { items: [], deferredGroups };
   }
+
+  // A non-recursive pass can only inline subdirectories that flatten to a
+  // plain link; without flattenSinglePage, every subdirectory needs its own
+  // group, which this pass can't produce, so it's left for the caller.
+  const considerDirectories = recursive || ctx.options.flattenSinglePage;
 
   for (const entry of dirEntries) {
     if (isIndexFilename(entry) || isSkippedEntryName(entry) || entry === '.sidebar') continue;
@@ -335,7 +384,7 @@ function collectChildEntries(
     }
 
     if (stat.isDirectory()) {
-      if (!recursive) continue;
+      if (!considerDirectories) continue;
       if (isExcluded(path.posix.join(dirPath, entry), ctx.exclusions)) continue;
       allNames.push(entry);
       itemTypes.set(entry, 'directory');
@@ -375,11 +424,16 @@ function collectChildEntries(
         formatTitle(name, maxTitleLength),
         currentDepth + 1,
       );
-      if (child) results.push(child);
+      if (!child) continue;
+      if (!recursive && child.items) {
+        deferredGroups.set(name, child);
+      } else {
+        results.push(child);
+      }
     }
   }
 
-  return results;
+  return { items: results, deferredGroups };
 }
 
 /** Lists a directory's visible, non-excluded child directories, in configured order. */

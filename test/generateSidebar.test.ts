@@ -118,8 +118,9 @@ describe('title resolution', () => {
         widgets: { 'README.md': '---\nsection-title: Widget Catalog\n---\n# Widgets' },
       },
     });
-    const sub = sidebar['/products/'].find((i) => i.text === 'Widget Catalog');
-    expect(sub).toBeDefined();
+    // widgets/ has only its own README, so with flattenSinglePage's default it's
+    // nested as a plain link inside the Products group rather than promoted.
+    expect(collectAllTexts(sidebar['/products/'])).toContain('Widget Catalog');
   });
 });
 
@@ -150,12 +151,14 @@ describe('.sidebar ordering', () => {
     expect(item?.text).toBe('My Custom Title');
   });
 
-  it('promotes a subdirectory to a sibling group per .sidebar ordering', () => {
+  it('promotes a multi-page subdirectory to a sibling group per .sidebar ordering', () => {
+    // Each subdirectory has more than one page, so neither flattens away —
+    // both stay real groups and get promoted to their own sibling entries.
     const sidebar = build({
       products: {
         'README.md': '# Products',
-        widgets: { 'README.md': '# Widgets' },
-        gadgets: { 'README.md': '# Gadgets' },
+        widgets: { 'README.md': '# Widgets', 'pricing.md': '# Pricing' },
+        gadgets: { 'README.md': '# Gadgets', 'pricing.md': '# Pricing' },
         '.sidebar': 'gadgets\nwidgets',
       },
     });
@@ -303,12 +306,14 @@ describe('collapsed option', () => {
 });
 
 describe('flattenSinglePage option', () => {
-  it('is on by default, collapsing a single-page subdirectory into a plain link', () => {
+  it('is on by default, nesting a single-page subdirectory as a plain link in its parent group', () => {
     const sidebar = build({
       products: { 'README.md': '# Products', widgets: { 'README.md': '# Widgets' } },
     });
-    const widgets = sidebar['/products/'].find((i) => i.text === 'Widgets');
-    expect(widgets).toEqual({ text: 'Widgets', link: '/products/widgets/' });
+    // Only one top-level entry — widgets/ was nested into Products' own group,
+    // not promoted to a sibling of it.
+    expect(sidebar['/products/']).toHaveLength(1);
+    expect(sidebar['/products/'][0].items).toContainEqual({ text: 'Widgets', link: '/products/widgets/' });
   });
 
   it('keeps a single-page subdirectory as its own group when explicitly disabled', () => {
@@ -348,6 +353,19 @@ describe('flattenSinglePage option', () => {
     // flattened away.
     const widgets = sidebar['/products/'].find((i) => i.text === 'Widgets');
     expect(widgets?.items).toEqual([expect.objectContaining({ text: 'Gadgets', items: expect.any(Array) })]);
+  });
+
+  it('orders a nested flattened subdirectory among root-level files per .sidebar', () => {
+    const sidebar = build({
+      products: {
+        'README.md': '# Products',
+        'zeta.md': '# Zeta',
+        widgets: { 'README.md': '# Widgets' },
+        '.sidebar': 'widgets\nzeta.md',
+      },
+    });
+    const texts = sidebar['/products/'][0].items?.map((i) => i.text);
+    expect(texts).toEqual(['Products', 'Widgets', 'Zeta']);
   });
 });
 

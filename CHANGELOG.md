@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-10
+
 ### Added
 
 - `flattenSinglePage` option: collapses a subdirectory that has only one visible entry (typically just its own landing page) into a plain link in its parent group, instead of always promoting it to its own sibling group.

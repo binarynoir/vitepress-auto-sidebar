@@ -35,6 +35,16 @@ describe('basic sidebar generation', () => {
     expect(Object.keys(sidebar)).toEqual(['/products/']);
   });
 
+  it('skips VitePress\'s public/ static-assets root, but not a "public-api" section', () => {
+    const sidebar = build({
+      public: { 'favicon.ico': '', 'logo.png': '' },
+      'public-api': { 'README.md': '# Public API' },
+      products: { 'README.md': '# Products' },
+    });
+
+    expect(Object.keys(sidebar).sort()).toEqual(['/products/', '/public-api/']);
+  });
+
   it('excludes underscore-prefixed subdirectories and files (VitePress partials)', () => {
     const sidebar = build({
       products: {

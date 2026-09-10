@@ -414,13 +414,21 @@ function resolveDirectoryTitle(ctx: GenerateContext, dirPath: string, fallbackTi
 }
 
 /**
- * Files/directories VitePress itself never routes to a page: dotfiles, and
+ * Files/directories VitePress itself never routes to a page: dotfiles,
  * anything prefixed with `_` (VitePress's convention for partials/snippets
- * meant to be transcluded, not visited directly). `-`-prefixed and `assets`
- * entries are this generator's own additional conventions for non-page content.
+ * meant to be transcluded, not visited directly), and `public` (VitePress's
+ * static-assets root, copied as-is and never treated as content). `-`-prefixed
+ * and `assets`-prefixed entries are this generator's own additional
+ * conventions for non-page content.
  */
 function isSkippedEntryName(name: string): boolean {
-  return name.startsWith('.') || name.startsWith('_') || name.startsWith('-') || name.startsWith('assets');
+  return (
+    name.startsWith('.') ||
+    name.startsWith('_') ||
+    name.startsWith('-') ||
+    name.startsWith('assets') ||
+    name === 'public'
+  );
 }
 
 function toUrlDir(fsDir: string): string {

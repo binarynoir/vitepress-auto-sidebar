@@ -1,0 +1,60 @@
+{
+  "name": "vitepress-auto-sidebar",
+  "version": "0.1.0",
+  "description": "Automatically generate a VitePress 2 multi-sidebar config from your docs folder structure, with per-directory ordering, titles, hiding, and exclusion files.",
+  "keywords": [
+    "vitepress",
+    "vitepress-plugin",
+    "sidebar",
+    "docs",
+    "documentation"
+  ],
+  "license": "MIT",
+  "author": "BinaryNoir",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BinaryNoir/vitepress-auto-sidebar.git"
+  },
+  "homepage": "https://github.com/BinaryNoir/vitepress-auto-sidebar#readme",
+  "bugs": {
+    "url": "https://github.com/BinaryNoir/vitepress-auto-sidebar/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "prepublishOnly": "npm run typecheck && npm run test && npm run build"
+  },
+  "dependencies": {
+    "gray-matter": "^4.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "eslint": "^9.17.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.19.0",
+    "vitest": "^2.1.8"
+  }
+}

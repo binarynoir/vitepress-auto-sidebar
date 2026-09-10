@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-09-10
+
 ### Fixed
 
 - README `[!NOTE]` GitHub-only alert syntax replaced with a plain blockquote — npmjs.com's README renderer doesn't support it and was showing the literal marker text instead of a styled callout.

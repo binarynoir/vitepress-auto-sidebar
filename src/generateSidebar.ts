@@ -134,11 +134,15 @@ function buildSectionForTopDir(ctx: GenerateContext, fsDir: string, currentDepth
   }
   rootChildren.push(...nestedRootEntries);
 
-  const rootItem: SidebarItem = {
-    text: rootTitle,
-    ...(hasIndex && !indexHidden ? { link: urlDir } : {}),
-    ...(rootChildren.length ? { items: rootChildren, collapsed: ctx.options.collapsed } : {}),
-  };
+  // Same flatten check subdirectories get: a top-level section with nothing
+  // but its own landing page (or a single file, if it has no landing page)
+  // is one link, not a group whose only child repeats its own label.
+  const rootItem: SidebarItem = buildGroupOrLeaf(
+    ctx,
+    rootTitle,
+    hasIndex && !indexHidden ? urlDir : undefined,
+    rootChildren,
+  ) ?? { text: rootTitle };
 
   // ROOT=-prefixed web links, positioned by their line index relative to `...`.
   const rootLevelLinks = new Map<number, SidebarItem>();

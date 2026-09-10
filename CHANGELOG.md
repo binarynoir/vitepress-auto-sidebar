@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-09-10
+
+### Fixed
+
+- `flattenSinglePage` now also applies to a top-level section itself, not just its subdirectories. A section with nothing but its own landing page (e.g. a `tools-resources/` with only a `README.md`) was still forced into a group whose only child repeated the section's own label; it's now a single plain link, consistent with how a single-page subdirectory has always been handled.
+
 ## [0.4.1] - 2026-09-10
 
 ### Fixed

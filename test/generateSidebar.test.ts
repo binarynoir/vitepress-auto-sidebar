@@ -65,13 +65,15 @@ describe('basic sidebar generation', () => {
   });
 
   it('omits the link when there is no landing page', () => {
-    const sidebar = build({ products: { 'widgets.md': '# Widgets' } });
+    // Two files so the section doesn't flatten to a single link, which would
+    // otherwise point at whichever one file exists instead of testing this.
+    const sidebar = build({ products: { 'widgets.md': '# Widgets', 'gadgets.md': '# Gadgets' } });
     expect(sidebar['/products/'][0].link).toBeUndefined();
   });
 
   it('prefers index.md over README.md as the landing page', () => {
     const sidebar = build({
-      products: { 'index.md': '# Index Wins', 'README.md': '# Readme Loses' },
+      products: { 'index.md': '# Index Wins', 'README.md': '# Readme Loses', 'widgets.md': '# Widgets' },
     });
     // The section header links to the landing page...
     expect(sidebar['/products/'][0].link).toBe('/products/');
@@ -306,6 +308,21 @@ describe('collapsed option', () => {
 });
 
 describe('flattenSinglePage option', () => {
+  it('applies to a top-level section too: a single-page section is one plain link, not a group repeating its own label', () => {
+    const sidebar = build({ 'tools-resources': { 'README.md': '# Tools & Resources' } });
+    // "Tools Resources" is the formatted directory name — the same label a
+    // group header would have used, per the resolution order tested above.
+    expect(sidebar['/tools-resources/']).toEqual([{ text: 'Tools Resources', link: '/tools-resources/' }]);
+  });
+
+  it('leaves a single-page top-level section as a group when explicitly disabled', () => {
+    const sidebar = build({ 'tools-resources': { 'README.md': '# Tools & Resources' } }, { flattenSinglePage: false });
+    expect(sidebar['/tools-resources/'][0]).toMatchObject({
+      link: '/tools-resources/',
+      items: [{ text: 'Tools & Resources', link: '/tools-resources/' }],
+    });
+  });
+
   it('is on by default, nesting a single-page subdirectory as a plain link in its parent group', () => {
     const sidebar = build({
       products: { 'README.md': '# Products', widgets: { 'README.md': '# Widgets' } },

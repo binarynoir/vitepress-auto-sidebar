@@ -24,6 +24,8 @@ import { defineConfig } from 'vitepress';
 import { generateSidebar } from '@binarynoir/vitepress-auto-sidebar';
 import path from 'node:path';
 
+const docsRoot = path.resolve(import.meta.dirname, '..');
+
 export default defineConfig({
   themeConfig: {
     sidebar: generateSidebar(path.resolve(import.meta.dirname, '../docs'), {

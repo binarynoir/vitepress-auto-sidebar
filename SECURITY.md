@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-Only the latest published version of `vitepress-auto-sidebar` receives security fixes.
+Only the latest published version of `@binarynoir/vitepress-auto-sidebar` receives security fixes.
 
 ## Reporting a Vulnerability
 

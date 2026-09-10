@@ -3,10 +3,11 @@
 // .github/workflows/release.yml, which tests, builds, publishes to npm,
 // and creates the GitHub release — this script only handles the local half.
 import { execSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 
 const bumpType = process.argv[2];
-const validTypes = ['patch', 'minor', 'major', 'prepatch', 'preminor', 'premajor', 'prerelease'];
+const semverBumps = ['patch', 'minor', 'major'];
+const validTypes = [...semverBumps, 'prepatch', 'preminor', 'premajor', 'prerelease'];
 
 if (!bumpType) {
   console.error(`Usage: npm run release -- <${validTypes.join('|')}|<version>>`);
@@ -21,6 +22,16 @@ function run(cmd) {
 
 function runCapture(cmd) {
   return execSync(cmd, { encoding: 'utf-8' }).trim();
+}
+
+/** For a plain `patch`/`minor`/`major` bump, compute the resulting version without side effects. */
+function computeNextVersion(currentVersion, type) {
+  const match = currentVersion.match(/^(\d+)\.(\d+)\.(\d+)$/);
+  if (!match || !semverBumps.includes(type)) return null;
+  const [major, minor, patch] = match.slice(1).map(Number);
+  if (type === 'major') return `${major + 1}.0.0`;
+  if (type === 'minor') return `${major}.${minor + 1}.0`;
+  return `${major}.${minor}.${patch + 1}`;
 }
 
 const branch = runCapture('git rev-parse --abbrev-ref HEAD');
@@ -42,10 +53,37 @@ if (local !== remote) {
   process.exit(1);
 }
 
-const changelog = readFileSync(new URL('../CHANGELOG.md', import.meta.url), 'utf-8');
-const unreleased = changelog.match(/## \[Unreleased\]\n([\s\S]*?)(?=\n## \[|$)/);
-if (!unreleased || !unreleased[1].trim()) {
-  console.error('CHANGELOG.md has no entries under [Unreleased] — add release notes first.');
+const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf-8'));
+const nextVersion = computeNextVersion(pkg.version, bumpType);
+
+const changelogUrl = new URL('../CHANGELOG.md', import.meta.url);
+const changelog = readFileSync(changelogUrl, 'utf-8');
+const unreleasedMatch = changelog.match(/## \[Unreleased\]\n([\s\S]*?)(?=\n## \[|$)/);
+const unreleasedBody = unreleasedMatch?.[1]?.trim() ?? '';
+const versionHeadingMatch = nextVersion
+  ? changelog.match(new RegExp(`## \\[${nextVersion.replace(/\./g, '\\.')}\\][^\\n]*\\n([\\s\\S]*?)(?=\\n## \\[|$)`))
+  : null;
+const versionAlreadyDocumented = !!versionHeadingMatch?.[1]?.trim();
+
+if (unreleasedBody) {
+  if (nextVersion) {
+    // Promote [Unreleased] -> [nextVersion] - date, and leave a fresh empty [Unreleased] above it.
+    const date = new Date().toISOString().slice(0, 10);
+    const updated = changelog.replace(
+      /## \[Unreleased\]\n[\s\S]*?(?=\n## \[|$)/,
+      `## [Unreleased]\n\n## [${nextVersion}] - ${date}\n\n${unreleasedBody}\n`,
+    );
+    writeFileSync(changelogUrl, updated);
+    run('git add CHANGELOG.md');
+    run(`git commit -m "docs: changelog for v${nextVersion}"`);
+  }
+  // else: a prerelease/explicit-version bump — leave CHANGELOG.md as written under [Unreleased].
+} else if (!versionAlreadyDocumented) {
+  console.error(
+    nextVersion
+      ? `CHANGELOG.md has no entries under [Unreleased] and no [${nextVersion}] section — add release notes first.`
+      : 'CHANGELOG.md has no entries under [Unreleased] — add release notes first.',
+  );
   process.exit(1);
 }
 

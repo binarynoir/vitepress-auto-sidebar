@@ -1,6 +1,6 @@
 {
   "name": "@binarynoir/vitepress-auto-sidebar",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Automatically generate a VitePress 2 multi-sidebar config from your docs folder structure, with per-directory ordering, titles, hiding, and exclusion files.",
   "keywords": [
     "vitepress",

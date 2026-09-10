@@ -78,7 +78,12 @@ describe('title resolution', () => {
         'getting-started.md': '---\ntitle: Getting Up and Running\n---\n# Getting Started',
       },
     });
-    const item = sidebar['/guides/'][0].items?.find((i) => i.link === '/guides/getting-started.html' || i.link === '/guides/getting-started.md' || i.link?.includes('getting-started'));
+    const item = sidebar['/guides/'][0].items?.find(
+      (i) =>
+        i.link === '/guides/getting-started.html' ||
+        i.link === '/guides/getting-started.md' ||
+        i.link?.includes('getting-started'),
+    );
     expect(item?.text).toBe('Getting Up and Running');
   });
 

@@ -20,18 +20,18 @@ npm install vitepress-auto-sidebar
 
 ```ts
 // .vitepress/config.ts
-import { defineConfig } from "vitepress";
-import { generateSidebar } from "vitepress-auto-sidebar";
-import path from "node:path";
+import { defineConfig } from 'vitepress';
+import { generateSidebar } from 'vitepress-auto-sidebar';
+import path from 'node:path';
 
 export default defineConfig({
-	themeConfig: {
-		sidebar: generateSidebar(path.resolve(__dirname, "../docs"), {
-			maxDepth: 3,
-			maxTitleLength: 50,
-			verbose: false,
-		}),
-	},
+  themeConfig: {
+    sidebar: generateSidebar(path.resolve(__dirname, '../docs'), {
+      maxDepth: 3,
+      maxTitleLength: 50,
+      verbose: false,
+    }),
+  },
 });
 ```
 
@@ -127,7 +127,7 @@ there:
 
 ```json
 {
-	"/products/": [{ "text": "Custom Group", "link": "/products/", "items": [] }]
+  "/products/": [{ "text": "Custom Group", "link": "/products/", "items": [] }]
 }
 ```
 
@@ -141,18 +141,25 @@ edit, not a `config.ts` change.
 
 ## Releasing
 
-Releases are tag-triggered. To ship a new version:
+Releases are tag-triggered. To ship a new version, from a clean `main` that's
+in sync with `origin/main`:
 
 ```sh
-npm version patch   # or minor / major
-git push --follow-tags
+npm run release:patch   # or release:minor / release:major
 ```
 
-`npm version` bumps `package.json`, commits, and creates a matching `vX.Y.Z`
-tag. Pushing that tag triggers [`.github/workflows/release.yml`](.github/workflows/release.yml),
-which typechecks, tests, and builds the package, then publishes it to npm
-(with [provenance](https://docs.npmjs.com/generating-provenance-statements))
-and creates a GitHub release with auto-generated notes.
+This runs typecheck/lint/test/build locally, then `npm version <bump>`
+(bumps `package.json`, commits, and creates a matching `vX.Y.Z` tag) and
+`git push --follow-tags`. Pushing that tag triggers
+[`.github/workflows/release.yml`](.github/workflows/release.yml), which
+re-runs the checks, publishes to npm (with
+[provenance](https://docs.npmjs.com/generating-provenance-statements)), and
+creates a GitHub release with auto-generated notes.
+
+For a prerelease or an explicit version, use `npm run release -- <arg>`
+(e.g. `npm run release -- 1.2.3` or `npm run release -- prerelease`) — see
+[`npm version`](https://docs.npmjs.com/cli/v10/commands/npm-version) for the
+full list of accepted values.
 
 This requires an `NPM_TOKEN` repository secret (an npm
 [automation token](https://docs.npmjs.com/creating-and-viewing-access-tokens)

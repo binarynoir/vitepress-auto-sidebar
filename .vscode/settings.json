@@ -1,5 +1,14 @@
 {
-  "cSpell.words": ["frontmatter", "hideall", "premajor", "preminor", "prepatch", "SSRS", "weblink"],
+  "cSpell.words": [
+    "binarynoir",
+    "frontmatter",
+    "hideall",
+    "premajor",
+    "preminor",
+    "prepatch",
+    "SSRS",
+    "weblink"
+  ],
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.formatOnSave": true
 }

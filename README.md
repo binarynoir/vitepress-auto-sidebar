@@ -35,11 +35,10 @@ export default defineConfig({
 });
 ```
 
-> [!NOTE]
-> Use `import.meta.dirname`, not `__dirname` — VitePress config files are
-> ESM, and `__dirname` isn't defined there under VitePress's newer native
-> config loader. If your project uses a plain (non-`.mts`) `config.ts` with
-> `__dirname` already working via bundling, either form works, but
+> **Note:** Use `import.meta.dirname`, not `__dirname` — VitePress config
+> files are ESM, and `__dirname` isn't defined there under VitePress's newer
+> native config loader. If your project uses a plain (non-`.mts`) `config.ts`
+> with `__dirname` already working via bundling, either form works, but
 > `import.meta.dirname` is the forward-compatible choice.
 
 `generateSidebar(rootPath, options?)` walks `rootPath`. Each top-level

@@ -81,11 +81,14 @@ non-page content.
 
 ## Grouping subdirectories
 
-By default (`flattenSinglePage: true`), a subdirectory that has nothing in it
-besides its own landing page is rendered as a single link, not as its own
-collapsible group — there's nothing to expand, so a group would just be
-visual noise. A subdirectory with more than one page (or with a nested
-subdirectory of its own) still gets a full group.
+Each top-level docs directory (`engineering/`, `guides/`, ...) becomes its
+own group with its own URL prefix. By default (`flattenSinglePage: true`), a
+_subdirectory_ of that top-level directory only gets promoted to its own
+sibling group if it actually has more than one visible entry (more pages, or
+a subdirectory of its own). A subdirectory that has nothing in it besides its
+own landing page is nested as a plain link inside its parent's group instead
+— there's nothing to expand, so a whole separate collapsible group next to
+its parent would just be visual noise.
 
 Given:
 
@@ -101,26 +104,29 @@ docs/
       sql-patterns.md         # multiple pages
 ```
 
-the generated `/engineering/` sidebar looks like:
+the generated `/engineering/` sidebar has one top-level group, not two:
 
 ```text
 Engineering
-Architecture              ← plain link (architecture/ has only its own README)
-SSRS Reports               ← still a group (has 3 pages)
+  ├─ Engineering
+  └─ Architecture            ← nested plain link (architecture/ has only its own README)
+SSRS Reports                 ← still promoted to its own sibling group (has 3 pages)
   ├─ SSRS Reports
   ├─ Data Sources
   └─ SQL Patterns
 ```
 
-A flattened link's label comes from the _directory's_ resolved title — the
-same title a group header would have used (an explicit `.sidebar` override,
-then `section-title` frontmatter, then the formatted directory name) — not
-the landing page's own frontmatter/heading title, so it stays consistent
-with any sibling group headers next to it.
+A nested link's label comes from the _directory's_ resolved title — the same
+title a group header would have used (an explicit `.sidebar` override, then
+`section-title` frontmatter, then the formatted directory name) — not the
+landing page's own frontmatter/heading title, so it stays consistent with
+any sibling group headers next to it. Its position among its parent's other
+entries (files, web links) follows the same `.sidebar` ordering rules as
+everything else in that directory.
 
-Set `flattenSinglePage: false` to always give every subdirectory its own
-group, even single-page ones — this matches the behavior of `0.3.0` and
-earlier, before this option defaulted to `true`:
+Set `flattenSinglePage: false` to always promote every subdirectory to its
+own sibling group, even single-page ones — this matches the behavior of
+`0.3.0` and earlier, before this option existed:
 
 ```ts
 generateSidebar(docsRoot, { flattenSinglePage: false });

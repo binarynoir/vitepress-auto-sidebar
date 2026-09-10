@@ -37,7 +37,7 @@ export function generateSidebar(rootPath: string, options: GenerateSidebarOption
     configFilenames: options.configFilenames ?? ['.sidebar'],
     excludeFilenames: options.excludeFilenames ?? ['.exclude'],
     collapsed: options.collapsed ?? false,
-    flattenSinglePage: options.flattenSinglePage ?? false,
+    flattenSinglePage: options.flattenSinglePage ?? true,
     verbose: options.verbose ?? false,
   };
 

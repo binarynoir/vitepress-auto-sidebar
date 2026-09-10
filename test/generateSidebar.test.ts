@@ -166,16 +166,21 @@ describe('.sidebar ordering', () => {
 
 describe('hide directives', () => {
   it('.hide drops the directory link but keeps it (and its children) in the tree', () => {
-    const sidebar = build({
-      products: {
-        'README.md': '# Products',
-        legacy: {
-          'README.md': '# Legacy',
-          '.sidebar': '.hide',
-          v1: { 'README.md': '# V1' },
+    const sidebar = build(
+      {
+        products: {
+          'README.md': '# Products',
+          legacy: {
+            'README.md': '# Legacy',
+            '.sidebar': '.hide',
+            v1: { 'README.md': '# V1' },
+          },
         },
       },
-    });
+      // Isolate this test from flattenSinglePage's default-on behavior, which is
+      // covered separately below.
+      { flattenSinglePage: false },
+    );
     const legacyGroup = sidebar['/products/'].find((i) => i.text === 'Legacy');
     expect(legacyGroup).toBeDefined();
     expect(legacyGroup?.link).toBeUndefined();
@@ -262,7 +267,10 @@ describe('maxDepth', () => {
           },
         },
       },
-      { maxDepth: 1 },
+      // flattenSinglePage is off here so this test can check for the page's own
+      // title ("L1") rather than the directory-derived label a flattened link
+      // would show instead; that behavior has its own tests above.
+      { maxDepth: 1, flattenSinglePage: false },
     );
     const texts = collectAllTexts(sidebar['/products/']);
     expect(texts).toContain('L1');
@@ -271,8 +279,15 @@ describe('maxDepth', () => {
 });
 
 describe('collapsed option', () => {
+  // flattenSinglePage defaults to true, which would collapse this single-page
+  // "widgets" fixture into a plain link with no `collapsed` key at all — turn
+  // it off so these tests isolate the `collapsed` default/override instead.
+
   it('defaults generated groups to expanded (collapsed: false)', () => {
-    const sidebar = build({ products: { 'README.md': '# Products', widgets: { 'README.md': '# Widgets' } } });
+    const sidebar = build(
+      { products: { 'README.md': '# Products', widgets: { 'README.md': '# Widgets' } } },
+      { flattenSinglePage: false },
+    );
     const group = sidebar['/products/'].find((i) => i.text === 'Widgets');
     expect(group?.collapsed).toBe(false);
   });
@@ -280,7 +295,7 @@ describe('collapsed option', () => {
   it('honors collapsed: true', () => {
     const sidebar = build(
       { products: { 'README.md': '# Products', widgets: { 'README.md': '# Widgets' } } },
-      { collapsed: true },
+      { collapsed: true, flattenSinglePage: false },
     );
     const group = sidebar['/products/'].find((i) => i.text === 'Widgets');
     expect(group?.collapsed).toBe(true);
@@ -288,10 +303,19 @@ describe('collapsed option', () => {
 });
 
 describe('flattenSinglePage option', () => {
-  it('is off by default, so a single-page subdirectory still becomes its own group', () => {
+  it('is on by default, collapsing a single-page subdirectory into a plain link', () => {
     const sidebar = build({
       products: { 'README.md': '# Products', widgets: { 'README.md': '# Widgets' } },
     });
+    const widgets = sidebar['/products/'].find((i) => i.text === 'Widgets');
+    expect(widgets).toEqual({ text: 'Widgets', link: '/products/widgets/' });
+  });
+
+  it('keeps a single-page subdirectory as its own group when explicitly disabled', () => {
+    const sidebar = build(
+      { products: { 'README.md': '# Products', widgets: { 'README.md': '# Widgets' } } },
+      { flattenSinglePage: false },
+    );
     const widgets = sidebar['/products/'].find((i) => i.text === 'Widgets');
     expect(widgets).toMatchObject({
       link: '/products/widgets/',
@@ -299,41 +323,26 @@ describe('flattenSinglePage option', () => {
     });
   });
 
-  it('collapses a single-page subdirectory into a plain link when enabled', () => {
-    const sidebar = build(
-      { products: { 'README.md': '# Products', widgets: { 'README.md': '# Widgets' } } },
-      { flattenSinglePage: true },
-    );
-    const widgets = sidebar['/products/'].find((i) => i.text === 'Widgets');
-    expect(widgets).toEqual({ text: 'Widgets', link: '/products/widgets/' });
-  });
-
   it('does not flatten a subdirectory that has more than one visible entry', () => {
-    const sidebar = build(
-      {
-        products: {
-          'README.md': '# Products',
-          widgets: { 'README.md': '# Widgets', 'pricing.md': '# Pricing' },
-        },
+    const sidebar = build({
+      products: {
+        'README.md': '# Products',
+        widgets: { 'README.md': '# Widgets', 'pricing.md': '# Pricing' },
       },
-      { flattenSinglePage: true },
-    );
+    });
     const widgets = sidebar['/products/'].find((i) => i.text === 'Widgets');
     expect(widgets?.items).toHaveLength(2);
   });
 
   it('does not flatten a subdirectory whose only child is itself a multi-page group', () => {
-    const sidebar = build(
-      {
-        products: {
-          'README.md': '# Products',
-          widgets: {
-            gadgets: { 'README.md': '# Gadgets', 'one.md': '# One', 'two.md': '# Two' },
-          },
+    const sidebar = build({
+      products: {
+        'README.md': '# Products',
+        widgets: {
+          gadgets: { 'README.md': '# Gadgets', 'one.md': '# One', 'two.md': '# Two' },
         },
       },
-      { flattenSinglePage: true },
-    );
+    });
     // widgets/ has no landing page of its own and exactly one child (the gadgets/ group),
     // but that child is itself a multi-item group and must stay a nested group, not be
     // flattened away.

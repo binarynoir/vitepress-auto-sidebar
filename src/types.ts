@@ -28,7 +28,8 @@ export interface GenerateSidebarOptions {
    * Collapse a subdirectory into a single plain link inside its parent group,
    * instead of promoting it to its own sibling group, whenever that
    * subdirectory has exactly one visible entry (typically just its landing
-   * page). Default: false — every subdirectory always becomes its own group.
+   * page). Default: true. Set to `false` to always give every subdirectory
+   * its own group, even single-page ones.
    */
   flattenSinglePage?: boolean;
   /** Log what the generator is doing as it walks the docs tree. Default: false. */

@@ -1,8 +1,8 @@
 # vitepress-auto-sidebar
 
-[![npm version](https://img.shields.io/npm/v/%40binarynoir%2Fvitepress-auto-sidebar.svg)](https://www.npmjs.com/package/@binarynoir/vitepress-auto-sidebar)
+[![npm version](https://img.shields.io/npm/v/@binarynoir/vitepress-auto-sidebar.svg)](https://www.npmjs.com/package/@binarynoir/vitepress-auto-sidebar)
 [![CI](https://github.com/binarynoir/vitepress-auto-sidebar/actions/workflows/ci.yml/badge.svg)](https://github.com/binarynoir/vitepress-auto-sidebar/actions/workflows/ci.yml)
-[![license](https://img.shields.io/npm/l/%40binarynoir%2Fvitepress-auto-sidebar.svg)](LICENSE)
+[![license](https://img.shields.io/npm/l/@binarynoir/vitepress-auto-sidebar.svg)](LICENSE)
 
 Generate a [VitePress 2](https://vitepress.dev) multi-sidebar config by scanning
 your docs folder, instead of hand-maintaining `themeConfig.sidebar`. Ordering,

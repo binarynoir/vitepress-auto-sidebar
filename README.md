@@ -19,14 +19,14 @@ npm install @binarynoir/vitepress-auto-sidebar
 ## Usage
 
 ```ts
-// .vitepress/config.ts
+// .vitepress/config.mts
 import { defineConfig } from 'vitepress';
 import { generateSidebar } from '@binarynoir/vitepress-auto-sidebar';
 import path from 'node:path';
 
 export default defineConfig({
   themeConfig: {
-    sidebar: generateSidebar(path.resolve(__dirname, '../docs'), {
+    sidebar: generateSidebar(path.resolve(import.meta.dirname, '../docs'), {
       maxDepth: 3,
       maxTitleLength: 50,
       verbose: false,
@@ -35,11 +35,19 @@ export default defineConfig({
 });
 ```
 
+> [!NOTE]
+> Use `import.meta.dirname`, not `__dirname` — VitePress config files are
+> ESM, and `__dirname` isn't defined there under VitePress's newer native
+> config loader. If your project uses a plain (non-`.mts`) `config.ts` with
+> `__dirname` already working via bundling, either form works, but
+> `import.meta.dirname` is the forward-compatible choice.
+
 `generateSidebar(rootPath, options?)` walks `rootPath`. Each top-level
 subdirectory becomes one entry in the returned sidebar, keyed by its URL
 prefix (e.g. `/guides/`); its own subdirectories become sibling groups nested
 under that same key, matching VitePress's [multi-sidebar](https://vitepress.dev/reference/default-theme-sidebar#multiple-sidebars)
-format.
+format. See [Grouping subdirectories](#grouping-subdirectories) below for how
+that grouping is controlled.
 
 A directory's landing page — `index.md` if present, otherwise `README.md`
 (both matched case-insensitively; VitePress auto-rewrites either to
@@ -51,17 +59,71 @@ A directory's landing page — `index.md` if present, otherwise `README.md`
 3. The file's first `# Heading`.
 4. The filename, formatted (`getting-started.md` → "Getting Started").
 
+Directories/files VitePress itself never turns into pages are skipped
+automatically: anything starting with `.` or `_` (VitePress's own convention
+for partials/snippets meant to be transcluded, not visited directly), and
+`public/` (VitePress's static-assets root). Anything starting with `-` or
+named `assets*` is skipped too, as this generator's own convention for
+non-page content.
+
 ## Options
 
-| Option              | Default        | Description                                                                                                                                                           |
-| ------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `maxDepth`          | `3`            | How many directory levels deep to recurse.                                                                                                                            |
-| `maxTitleLength`    | `50`           | Truncate generated titles beyond this length.                                                                                                                         |
-| `configFilenames`   | `['.sidebar']` | Filenames checked for per-directory ordering config.                                                                                                                  |
-| `excludeFilenames`  | `['.exclude']` | Filenames checked for per-directory exclusion rules.                                                                                                                  |
-| `collapsed`         | `false`        | Initial `collapsed` state applied to generated section headers.                                                                                                       |
-| `flattenSinglePage` | `false`        | Collapse a subdirectory into a plain link in its parent group instead of its own sibling group, when it has only one visible entry (typically just its landing page). |
-| `verbose`           | `false`        | Log each directory as it's processed.                                                                                                                                 |
+| Option              | Default        | Description                                                                                                                                                                                                                    |
+| ------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `maxDepth`          | `3`            | How many directory levels deep to recurse.                                                                                                                                                                                     |
+| `maxTitleLength`    | `50`           | Truncate generated titles beyond this length.                                                                                                                                                                                  |
+| `configFilenames`   | `['.sidebar']` | Filenames checked for per-directory ordering config.                                                                                                                                                                           |
+| `excludeFilenames`  | `['.exclude']` | Filenames checked for per-directory exclusion rules.                                                                                                                                                                           |
+| `collapsed`         | `false`        | Initial `collapsed` state applied to generated section headers (the ones that still have `items` after flattening, see below).                                                                                                 |
+| `flattenSinglePage` | `true`         | Collapse a subdirectory into a plain link in its parent group instead of its own sibling group, when it has only one visible entry (typically just its landing page). See [Grouping subdirectories](#grouping-subdirectories). |
+| `verbose`           | `false`        | Log each directory as it's processed.                                                                                                                                                                                          |
+
+## Grouping subdirectories
+
+By default (`flattenSinglePage: true`), a subdirectory that has nothing in it
+besides its own landing page is rendered as a single link, not as its own
+collapsible group — there's nothing to expand, so a group would just be
+visual noise. A subdirectory with more than one page (or with a nested
+subdirectory of its own) still gets a full group.
+
+Given:
+
+```text
+docs/
+  engineering/
+    README.md
+    architecture/
+      README.md              # only page in this subdirectory
+    ssrs-reports/
+      README.md
+      data-sources.md
+      sql-patterns.md         # multiple pages
+```
+
+the generated `/engineering/` sidebar looks like:
+
+```text
+Engineering
+Architecture              ← plain link (architecture/ has only its own README)
+SSRS Reports               ← still a group (has 3 pages)
+  ├─ SSRS Reports
+  ├─ Data Sources
+  └─ SQL Patterns
+```
+
+A flattened link's label comes from the _directory's_ resolved title — the
+same title a group header would have used (an explicit `.sidebar` override,
+then `section-title` frontmatter, then the formatted directory name) — not
+the landing page's own frontmatter/heading title, so it stays consistent
+with any sibling group headers next to it.
+
+Set `flattenSinglePage: false` to always give every subdirectory its own
+group, even single-page ones — this matches the behavior of `0.3.0` and
+earlier, before this option defaulted to `true`:
+
+```ts
+generateSidebar(docsRoot, { flattenSinglePage: false });
+```
 
 ## `.sidebar` files
 

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `flattenSinglePage` now defaults to `true` (was `false` in 0.3.0). Any subdirectory with only one visible entry (typically just its landing page) is now collapsed into a plain link by default, instead of becoming its own sibling group. **This changes the shape of the generated sidebar for existing callers** who weren't passing the option explicitly — set `flattenSinglePage: false` to keep the previous behavior.
+
 ## [0.3.0] - 2026-09-10
 
 ### Added

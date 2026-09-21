@@ -108,10 +108,10 @@ docs/
     README.md
     architecture/
       README.md              # only page in this subdirectory
-    ssrs-reports/
+    api-reference/
       README.md
-      data-sources.md
-      sql-patterns.md         # multiple pages
+      authentication.md
+      endpoints.md             # multiple pages
 ```
 
 the generated `/engineering/` sidebar has one top-level group, not two:
@@ -120,10 +120,10 @@ the generated `/engineering/` sidebar has one top-level group, not two:
 Engineering
   ├─ Engineering
   └─ Architecture            ← nested plain link (architecture/ has only its own README)
-SSRS Reports                 ← still promoted to its own sibling group (has 3 pages)
-  ├─ SSRS Reports
-  ├─ Data Sources
-  └─ SQL Patterns
+API Reference                 ← still promoted to its own sibling group (has 3 pages)
+  ├─ API Reference
+  ├─ Authentication
+  └─ Endpoints
 ```
 
 A nested link's label comes from the _directory's_ resolved title — the same

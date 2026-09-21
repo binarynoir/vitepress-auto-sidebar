@@ -7,7 +7,6 @@
     "premajor",
     "preminor",
     "prepatch",
-    "SSRS",
     "weblink"
   ],
   "editor.defaultFormatter": "esbenp.prettier-vscode",

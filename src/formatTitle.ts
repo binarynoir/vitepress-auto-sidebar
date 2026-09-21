@@ -5,7 +5,7 @@
  * - Strips a leading numeric ordering prefix (`01-`, `02_`, `03.`).
  * - Replaces `-` and `_` separators with spaces.
  * - Title-cases each word, except words that are already all-caps (acronyms
- *   like `SSRS` or `API` are left alone).
+ *   like `CI` or `API` are left alone).
  * - Truncates to `maxLength`, appending an ellipsis if truncated.
  */
 export function formatTitle(input: string, maxLength = 50): string {

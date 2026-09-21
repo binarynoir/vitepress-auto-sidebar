@@ -16,7 +16,7 @@ describe('formatTitle', () => {
   });
 
   it('preserves existing all-caps acronyms', () => {
-    expect(formatTitle('ssrs-SSRS-reports')).toBe('Ssrs SSRS Reports');
+    expect(formatTitle('api-API-docs')).toBe('Api API Docs');
   });
 
   it('truncates long titles with an ellipsis', () => {

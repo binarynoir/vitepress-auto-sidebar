@@ -4,11 +4,23 @@
 [![CI](https://github.com/binarynoir/vitepress-auto-sidebar/actions/workflows/ci.yml/badge.svg)](https://github.com/binarynoir/vitepress-auto-sidebar/actions/workflows/ci.yml)
 [![license](https://img.shields.io/npm/l/@binarynoir/vitepress-auto-sidebar.svg)](LICENSE)
 
-Generate a [VitePress 2](https://vitepress.dev) multi-sidebar config by scanning
-your docs folder, instead of hand-maintaining `themeConfig.sidebar`. Ordering,
-custom titles, hidden sections, and external links are all controlled with a
-tiny plain-text `.sidebar` file dropped into any directory — no code changes
-needed to reorder your docs.
+A [VitePress 2](https://vitepress.dev) plugin that builds your sidebar
+config for you by scanning your docs folder, so you stop hand-maintaining
+`themeConfig.sidebar`.
+
+## What this does
+
+VitePress needs to be told what pages exist and how to group them in the
+sidebar. Normally that means writing and updating a `themeConfig.sidebar`
+list by hand in your config file, and remembering to touch it every time you
+add, move, or rename a page.
+
+This plugin builds that list for you instead, by reading your actual docs
+folder structure. Add a new Markdown file and it shows up in the sidebar on
+its own, titled from its heading. When you do want a specific order, a
+custom title, or to hide something, you control that with a small
+plain-text `.sidebar` file dropped into that folder, not a change to your
+config code.
 
 ## Install
 

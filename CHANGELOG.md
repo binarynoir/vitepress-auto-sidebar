@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-09-21
+
+### Changed
+
+- **Breaking:** raised the minimum supported Node.js version from `>=18` to `>=22`. CI now tests against Node 22, 24, and 26 (dropping the 18/20 matrix entries), and releases publish on Node 26.
+
 ## [0.4.2] - 2026-09-10
 
 ### Fixed

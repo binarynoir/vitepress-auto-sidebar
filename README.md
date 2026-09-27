@@ -151,12 +151,12 @@ touching config code. Lines starting with `#` are comments.
 ```txt
 # docs/guides/.sidebar
 
-introduction:Intro
-getting-started:"Getting Started"
+introduction.md:Intro
+getting-started.md:"Getting Started"
 ROOT="https://status.example.com":Status
 advanced-topics
 ...
-migrations:Migrations
+migrations.md:Migrations
 "https://example.com/faq":FAQ
 ```
 
@@ -170,6 +170,11 @@ migrations:Migrations
 | `-name`                     | Hide this entry entirely (it's still on disk, just not in the sidebar). |
 | `.hide`                     | Hide _this_ directory's own link, but keep showing its children.        |
 | `.hideall` (or `.hide-all`) | Skip this directory and everything under it.                            |
+
+`name` is matched against the exact on-disk entry: a **file** entry needs its
+`.md` extension (`introduction.md`, not `introduction`). A file line missing
+its extension won't match anything — it's silently dropped into the
+alphabetical `...` bucket instead of being ordered/retitled.
 
 Ordering: items listed before `...` come first, in the order listed; items
 listed after `...` come last, in the order listed; everything else is

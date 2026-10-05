@@ -224,6 +224,15 @@ or external links without writing that logic yourself. This package covers
 that gap while staying data-driven — reordering docs is a `.sidebar` file
 edit, not a `config.ts` change.
 
+## Companion plugin: `vitepress-auto-navbar`
+
+[`vitepress-auto-navbar`](https://github.com/binarynoir/vitepress-auto-navbar)
+does for the top navigation bar (`themeConfig.nav`) what this plugin does for
+the sidebar: same folder scan, same `.exclude` and ordering syntax, with its
+own `.nav` files. Use both and one folder structure drives the whole site. It
+can fall back to your existing `.sidebar` files, or borrow titles from them
+with `.inherit`, so nothing has to be written twice.
+
 ## Releasing
 
 Releases are tag-triggered. To ship a new version, from a clean `main` that's

@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.4.7]
+## [0.4.8] - 2026-10-05
+
+- Updated README.md to add references to vitepress-auto-navbar
+
+## [0.4.7] - 2026-09-21
 
 ### Fixed
 

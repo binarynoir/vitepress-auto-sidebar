@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Add support and website badges to README
+- Add support, author, and acknowledgments sections to README
 
 ## [0.4.8] - 2026-10-05
 

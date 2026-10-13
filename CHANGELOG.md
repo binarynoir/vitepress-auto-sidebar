@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.11] - 2026-10-13
+
+### Changed
+
+- README: add a Feedback and support section with links to report a bug, request a feature, or browse open issues
+- README: add a More from BinaryNoir section with the BinaryNoir logo and links to the other plugins and command-line tools on [binarynoir.github.io](https://binarynoir.github.io)
+- README: add a binarynoir.github.io badge
+
 ## [0.4.10] - 2026-10-08
 
 ### Changed

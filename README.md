@@ -13,6 +13,7 @@ config for you by scanning your docs folder, so you stop hand-maintaining
 [![Support me on Buy Me a Coffee](https://img.shields.io/badge/Support%20me-Buy%20Me%20a%20Coffee-orange?style=for-the-badge&logo=buy-me-a-coffee)](https://buymeacoffee.com/binarynoir)
 [![Support me on Ko-fi](https://img.shields.io/badge/Support%20me-Ko--fi-blue?style=for-the-badge&logo=ko-fi)](https://ko-fi.com/binarynoir)
 [![Visit my website](https://img.shields.io/badge/Website-binarynoir.tech-8c8c8c?style=for-the-badge)](https://binarynoir.tech)
+[![More tools](https://img.shields.io/badge/More%20tools-binarynoir.github.io-111111?style=for-the-badge)](https://binarynoir.github.io)
 
 ## What this does
 
@@ -272,14 +273,56 @@ MIT
 
 ---
 
-## Support
+## Feedback and support
 
-If you encounter any issues or have questions, please open an issue on [GitHub](https://github.com/binarynoir/vitepress-auto-sidebar/issues).
+Bug reports, feature requests and questions are all welcome. Please open them on this project's [GitHub issue tracker](https://github.com/binarynoir/vitepress-auto-sidebar/issues):
+
+- **Found a bug?** [Report it](https://github.com/binarynoir/vitepress-auto-sidebar/issues/new?labels=bug&title=Bug%3A%20). Include your version and the steps to reproduce it.
+- **Have an idea?** [Request a feature](https://github.com/binarynoir/vitepress-auto-sidebar/issues/new?labels=enhancement&title=Feature%20request%3A%20). Tell us what you are trying to do.
+- **Something else?** [Browse open issues](https://github.com/binarynoir/vitepress-auto-sidebar/issues) to see if it has already been raised.
+
+Pull requests are welcome too.
+
+## More from BinaryNoir
+
+<p align="center">
+  <a href="https://binarynoir.tech">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://binarynoir.github.io/logo-wide-dark.svg">
+      <img alt="BinaryNoir" src="https://binarynoir.github.io/logo-wide-light.svg" width="320">
+    </picture>
+  </a>
+</p>
+
+Auto Sidebar is one of a family of open-source VitePress plugins, editor extensions and command-line tools from BinaryNoir. Browse them all, with documentation and live demos, at **[binarynoir.github.io](https://binarynoir.github.io)**.
+
+**VitePress plugins**
+
+- [Auto Navbar](https://binarynoir.github.io/plugins/auto-navbar): navbar built from your folders
+- [Markdown Tags](https://binarynoir.github.io/plugins/markdown-tags/): inline status badges
+- [Reading Time Tag](https://binarynoir.github.io/plugins/reading-time-tag): reading-time estimates
+- [Downloads](https://binarynoir.github.io/plugins/downloads): downloadable files next to your pages
+- [Glossary Tooltips](https://binarynoir.github.io/plugins/glossary/): hover definitions from one glossary file
+- [HTML Escape](https://binarynoir.github.io/plugins/html-escape/): stray tags and braces shown as text, not build errors
+
+**Vite plugins**
+
+- [Optimize Images](https://binarynoir.github.io/plugins/optimize-images): smaller images in the build output
+- [Image Fallback](https://binarynoir.github.io/plugins/image-fallback): a placeholder instead of a failed build
+
+**Editor extensions**
+
+- [Tags for Markdown for VS Code](https://binarynoir.github.io/plugins/markdown-tags/vscode): status badges in the VS Code Markdown preview
+- [Tags for Markdown for Obsidian](https://binarynoir.github.io/plugins/markdown-tags/obsidian): status badges in Obsidian
+
+**Command-line tools**
+
+- [NoirWatch](https://binarynoir.github.io/apps/noirwatch): get notified when a web page changes
+- [NoirCon](https://binarynoir.github.io/apps/noircon): get notified when a site, server or port goes down
+- [callrx](https://binarynoir.github.io/apps/callrx): amateur radio callsign lookup
+
+Website: **[binarynoir.tech](https://binarynoir.tech)** · Docs and demos: **[binarynoir.github.io](https://binarynoir.github.io)**
 
 ## Author
 
-John Smith III
-
-## Acknowledgments
-
-Thanks to all contributors and users for their support and feedback.
+John Smith III, [BinaryNoir](https://binarynoir.tech). Thanks to all contributors and users for their support and feedback.

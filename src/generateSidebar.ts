@@ -122,7 +122,11 @@ function buildSectionForTopDir(ctx: GenerateContext, fsDir: string, currentDepth
   // alongside root-level files; ones that stay a real multi-page group come
   // back as `deferredGroups` and get promoted to their own sibling entries
   // below instead, same as sidebar-key content.
-  const { items: nestedRootEntries, deferredGroups } = collectChildEntries(ctx, fsDir, false, currentDepth, directives);
+  const {
+    items: nestedRootEntries,
+    deferredGroups,
+    headingGroups,
+  } = collectChildEntries(ctx, fsDir, false, currentDepth, directives);
 
   const rootChildren: SidebarItem[] = [];
   if (hasIndex && indexFile && !indexHidden) {
@@ -224,6 +228,9 @@ function buildSectionForTopDir(ctx: GenerateContext, fsDir: string, currentDepth
     emitRange(ellipsisIndex + 1, configItems.length);
   }
 
+  // `[Heading]` groups follow everything listed before the first heading.
+  sectionItems.push(...headingGroups);
+
   return { [urlDir]: sectionItems };
 }
 
@@ -276,7 +283,8 @@ function buildDirectorySidebarItem(
       items.push({ text: explicitTitle ? truncateTitle(explicitTitle, ctx.options.maxTitleLength) : title, link });
     }
   }
-  items.push(...collectChildEntries(ctx, dirPath, true, currentDepth, directives).items);
+  const children = collectChildEntries(ctx, dirPath, true, currentDepth, directives);
+  items.push(...children.items, ...children.headingGroups);
 
   return buildGroupOrLeaf(ctx, title, link, items);
 }
@@ -324,6 +332,13 @@ interface ChildEntries {
    * own sibling section entries instead.
    */
   deferredGroups: Map<string, SidebarItem>;
+  /**
+   * One group per `[Heading]` line that has anything under it, holding every
+   * entry sorted after it, up to the next heading. Entries in these groups are
+   * nested in place whether or not they are themselves groups, so they are
+   * never in `items` or `deferredGroups`.
+   */
+  headingGroups: SidebarItem[];
 }
 
 /**
@@ -337,6 +352,9 @@ interface ChildEntries {
  *   `flattenSinglePage` is on) are nested in place; ones that stay a real
  *   group come back via `deferredGroups` instead, since a top-level section
  *   promotes those to its own sibling entries rather than nesting them.
+ *
+ * Entries sorted after a `[Heading]` line go into that heading's group
+ * instead, in both modes (see {@link ChildEntries.headingGroups}).
  */
 function collectChildEntries(
   ctx: GenerateContext,
@@ -348,6 +366,7 @@ function collectChildEntries(
   const { maxDepth, maxTitleLength } = ctx.options;
   const fullDir = path.posix.join(ctx.rootPath, dirPath);
   const deferredGroups = new Map<string, SidebarItem>();
+  const headingGroups: SidebarItem[] = [];
 
   const hiddenNames = new Set(
     directives.filter((i) => i.hidden && !i.isWebLink && i.name !== '...').map((i) => i.name.toLowerCase()),
@@ -359,7 +378,7 @@ function collectChildEntries(
     }
   }
 
-  const itemTypes = new Map<string, 'file' | 'directory' | 'weblink'>();
+  const itemTypes = new Map<string, 'file' | 'directory' | 'weblink' | 'heading'>();
   const allNames: string[] = [];
 
   let dirEntries: string[] = [];
@@ -367,7 +386,7 @@ function collectChildEntries(
     dirEntries = fs.readdirSync(fullDir);
   } catch (error) {
     console.error(`[vitepress-auto-sidebar] failed to read ${fullDir}: ${getErrorMessage(error)}`);
-    return { items: [], deferredGroups };
+    return { items: [], deferredGroups, headingGroups };
   }
 
   // A non-recursive pass can only inline subdirectories that flatten to a
@@ -407,20 +426,37 @@ function collectChildEntries(
     }
   }
 
+  for (const item of directives) {
+    if (!item.isHeading || itemTypes.has(item.name)) continue;
+    itemTypes.set(item.name, 'heading');
+    allNames.push(item.name);
+  }
+
   const sortedNames = sortItemsByOrder(allNames, directives);
 
   const results: SidebarItem[] = [];
+  // The `[Heading]` group entries currently go into, once one has been seen.
+  let currentHeading: SidebarItem | null = null;
+  const place = (item: SidebarItem) => (currentHeading ? currentHeading.items!.push(item) : results.push(item));
+
   for (const name of sortedNames) {
     const type = itemTypes.get(name);
 
-    if (type === 'file') {
+    if (type === 'heading') {
+      currentHeading = {
+        text: truncateTitle(titleOverrides.get(name) ?? name, maxTitleLength),
+        items: [],
+        collapsed: ctx.options.collapsed,
+      };
+      headingGroups.push(currentHeading);
+    } else if (type === 'file') {
       const explicitTitle = titleOverrides.get(name) ?? getMarkdownTitle(path.posix.join(fullDir, name));
-      results.push({
+      place({
         text: explicitTitle ? truncateTitle(explicitTitle, maxTitleLength) : formatTitle(name, maxTitleLength),
         link: toFileUrl(dirPath, name),
       });
     } else if (type === 'weblink') {
-      results.push({ text: truncateTitle(titleOverrides.get(name) ?? name, maxTitleLength), link: name });
+      place({ text: truncateTitle(titleOverrides.get(name) ?? name, maxTitleLength), link: name });
     } else if (type === 'directory' && currentDepth < maxDepth) {
       const child = buildDirectorySidebarItem(
         ctx,
@@ -429,15 +465,15 @@ function collectChildEntries(
         currentDepth + 1,
       );
       if (!child) continue;
-      if (!recursive && child.items) {
+      if (!recursive && child.items && !currentHeading) {
         deferredGroups.set(name, child);
       } else {
-        results.push(child);
+        place(child);
       }
     }
   }
 
-  return { items: results, deferredGroups };
+  return { items: results, deferredGroups, headingGroups: headingGroups.filter((group) => group.items!.length) };
 }
 
 /** Lists a directory's visible, non-excluded child directories, in configured order. */

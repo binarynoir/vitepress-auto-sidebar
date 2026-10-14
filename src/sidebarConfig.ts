@@ -16,6 +16,8 @@ import type { SidebarFrontmatter, SidebarItem, SidebarMulti } from './types.js';
  *                                  directory whose own `.hide`/`.hideall` isn't set)
  *   ...                            everything not explicitly listed goes here,
  *                                  sorted alphabetically
+ *   [Group Title]                  start a heading group: what follows, up to the
+ *                                  next heading, is shown under this title
  */
 export interface SidebarDirective {
   name: string;
@@ -24,6 +26,15 @@ export interface SidebarDirective {
   isWebLink?: boolean;
   isRootLevel?: boolean;
   hidden?: boolean;
+  /** A `[Group Title]` line: a group heading, not an entry on disk. */
+  isHeading?: boolean;
+}
+
+const HEADING_RE = /^\[(.+)\]$/;
+
+/** Whether a sorted entry name is a `[Group Title]` heading. */
+export function isHeadingName(name: string): boolean {
+  return HEADING_RE.test(name);
 }
 
 const WEB_LINK_RE = /^["']?(https?:\/\/[^"':]+)["']?:(?:"([^"]+)"|'([^']+)'|([^"':]+))$/i;
@@ -33,6 +44,11 @@ export function parseSidebarDirectives(rawLines: string[]): SidebarDirective[] {
   return rawLines.map((rawLine) => {
     let item = rawLine.trim();
     let hidden = false;
+
+    const headingMatch = item.match(HEADING_RE);
+    if (headingMatch) {
+      return { name: item, title: headingMatch[1].trim(), isHeading: true };
+    }
 
     if (item.startsWith('-')) {
       hidden = true;

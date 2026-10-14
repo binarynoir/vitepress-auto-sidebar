@@ -386,6 +386,100 @@ describe('flattenSinglePage option', () => {
   });
 });
 
+describe('[Heading] groups', () => {
+  /** Strips each item down to text, link and children, for readable comparisons. */
+  const shape = (items: { text: string; link?: string; items?: unknown[] }[] | undefined): unknown =>
+    items?.map((i) =>
+      i.items ? { text: i.text, items: shape(i.items as never) } : i.link ? `${i.text} ${i.link}` : i.text,
+    );
+
+  it('groups the entries listed after a heading under it, in a top-level section', () => {
+    const sidebar = build({
+      plugins: {
+        'index.md': '# Plugins',
+        'a.md': '# A',
+        'b.md': '# B',
+        'c.md': '# C',
+        multi: { 'index.md': '# Multi', 'one.md': '# One' },
+        '.sidebar': 'index.md:Overview\n[First group]\na.md\nmulti:Multi\n[Second: group]\nb.md\nc.md\n',
+      },
+    });
+
+    expect(shape(sidebar['/plugins/'])).toEqual([
+      'Plugins /plugins/',
+      {
+        text: 'First group',
+        items: ['A /plugins/a.md', { text: 'Multi', items: ['Multi /plugins/multi/', 'One /plugins/multi/one.md'] }],
+      },
+      { text: 'Second: group', items: ['B /plugins/b.md', 'C /plugins/c.md'] },
+    ]);
+  });
+
+  it('keeps entries before the first heading where they were', () => {
+    const sidebar = build({
+      guide: {
+        'index.md': '# Guide',
+        'intro.md': '# Intro',
+        'a.md': '# A',
+        '.sidebar': 'intro.md\n[Group]\na.md\n',
+      },
+    });
+
+    expect(shape(sidebar['/guide/'])).toEqual([
+      { text: 'Guide', items: ['Guide /guide/', 'Intro /guide/intro.md'] },
+      { text: 'Group', items: ['A /guide/a.md'] },
+    ]);
+  });
+
+  it('places unlisted entries at `...`, under the heading above it', () => {
+    const sidebar = build({
+      guide: {
+        'index.md': '# Guide',
+        'a.md': '# A',
+        'z.md': '# Z',
+        'm.md': '# M',
+        '.sidebar': '[Listed]\na.md\n[Everything else]\n...\n',
+      },
+    });
+
+    expect(shape(sidebar['/guide/'])).toEqual([
+      'Guide /guide/',
+      { text: 'Listed', items: ['A /guide/a.md'] },
+      { text: 'Everything else', items: ['M /guide/m.md', 'Z /guide/z.md'] },
+    ]);
+  });
+
+  it('works in nested directories, and drops headings with nothing under them', () => {
+    const sidebar = build({
+      guide: {
+        'index.md': '# Guide',
+        deep: {
+          'index.md': '# Deep',
+          'a.md': '# A',
+          'b.md': '# B',
+          '.sidebar': '[Empty]\n[Group]\na.md\nb.md\n',
+        },
+        'other.md': '# Other',
+      },
+    });
+
+    const deep = sidebar['/guide/'].find((i) => i.text === 'Deep');
+    expect(shape(deep?.items)).toEqual([
+      'Deep /guide/deep/',
+      { text: 'Group', items: ['A /guide/deep/a.md', 'B /guide/deep/b.md'] },
+    ]);
+    expect(collectAllTexts(sidebar['/guide/'])).not.toContain('Empty');
+  });
+
+  it('applies the collapsed option to heading groups', () => {
+    const sidebar = build(
+      { guide: { 'index.md': '# Guide', 'a.md': '# A', '.sidebar': '[Group]\na.md\n' } },
+      { collapsed: true },
+    );
+    expect(sidebar['/guide/'].find((i) => i.text === 'Group')?.collapsed).toBe(true);
+  });
+});
+
 describe('sidebar.json overrides', () => {
   it('uses a hand-authored sidebar.json verbatim for that section', () => {
     const custom = { '/products/': [{ text: 'Hand Rolled', link: '/products/' }] };

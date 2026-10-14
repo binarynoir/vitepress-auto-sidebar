@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { formatTitle, truncateTitle } from './formatTitle.js';
+import { createTitles, type Titles } from './titles.js';
 import { createExclusionContext, isExcluded, type ExclusionContext } from './exclusions.js';
 import {
   checkHideDirective,
@@ -21,6 +21,7 @@ interface GenerateContext {
   rootPath: string;
   options: ResolvedSidebarOptions;
   exclusions: ExclusionContext;
+  titles: Titles;
 }
 
 /**
@@ -40,6 +41,10 @@ export function generateSidebar(rootPath: string, options: GenerateSidebarOption
     excludeFilenames: options.excludeFilenames ?? ['.exclude'],
     collapsed: options.collapsed ?? false,
     flattenSinglePage: options.flattenSinglePage ?? true,
+    titleReplacements: options.titleReplacements ?? {},
+    stripTags: options.stripTags ?? true,
+    transformTitle: options.transformTitle,
+    groupTitleFromIndex: options.groupTitleFromIndex ?? false,
     verbose: options.verbose ?? false,
   };
 
@@ -47,6 +52,7 @@ export function generateSidebar(rootPath: string, options: GenerateSidebarOption
     rootPath,
     options: resolved,
     exclusions: createExclusionContext(rootPath, resolved.excludeFilenames),
+    titles: createTitles(resolved),
   };
 
   if (resolved.verbose) {
@@ -106,11 +112,7 @@ function buildSectionForTopDir(ctx: GenerateContext, fsDir: string, currentDepth
   const directives = parseSidebarDirectives(configItems);
   const ellipsisIndex = directives.findIndex((i) => i.name === '...');
 
-  const rootTitle = resolveDirectoryTitle(
-    ctx,
-    fsDir,
-    formatTitle(path.posix.basename(fsDir), ctx.options.maxTitleLength),
-  );
+  const rootTitle = resolveDirectoryTitle(ctx, fsDir, ctx.titles.fromName(path.posix.basename(fsDir)));
 
   const indexFile = getIndexFilename(fullDir);
   const indexRelPath = indexFile ? path.posix.join(fsDir, indexFile) : null;
@@ -130,9 +132,8 @@ function buildSectionForTopDir(ctx: GenerateContext, fsDir: string, currentDepth
 
   const rootChildren: SidebarItem[] = [];
   if (hasIndex && indexFile && !indexHidden) {
-    const explicitTitle = indexConfig?.title ?? getMarkdownTitle(path.posix.join(fullDir, indexFile));
     rootChildren.push({
-      text: explicitTitle ? truncateTitle(explicitTitle, ctx.options.maxTitleLength) : rootTitle,
+      text: explicitTitle(ctx, indexConfig?.title, path.posix.join(fullDir, indexFile)) ?? rootTitle,
       link: urlDir,
     });
   }
@@ -153,7 +154,7 @@ function buildSectionForTopDir(ctx: GenerateContext, fsDir: string, currentDepth
   directives.forEach((item, index) => {
     if (item.hidden || item.name === '...') return;
     if (item.isRootLevel && item.isWebLink && item.url && item.title) {
-      rootLevelLinks.set(index, { text: truncateTitle(item.title, ctx.options.maxTitleLength), link: item.url });
+      rootLevelLinks.set(index, { text: ctx.titles.fromText(item.title, 'config'), link: item.url });
     }
   });
 
@@ -183,7 +184,7 @@ function buildSectionForTopDir(ctx: GenerateContext, fsDir: string, currentDepth
         const child = buildDirectorySidebarItem(
           ctx,
           path.posix.join(fsDir, dir),
-          formatTitle(dir, ctx.options.maxTitleLength),
+          ctx.titles.fromName(dir),
           currentDepth + 1,
         );
         if (child) promotedGroups.set(dir, child);
@@ -257,7 +258,7 @@ function buildDirectorySidebarItem(
       const child = buildDirectorySidebarItem(
         ctx,
         path.posix.join(dirPath, sub),
-        formatTitle(sub, ctx.options.maxTitleLength),
+        ctx.titles.fromName(sub),
         currentDepth + 1,
       );
       if (child) items.push(child);
@@ -279,8 +280,7 @@ function buildDirectorySidebarItem(
   if (hasIndex && indexFile && link) {
     const indexConfig = directives.find((p) => p.name.toLowerCase() === indexFile.toLowerCase());
     if (!indexConfig?.hidden) {
-      const explicitTitle = indexConfig?.title ?? getMarkdownTitle(path.posix.join(fullDir, indexFile));
-      items.push({ text: explicitTitle ? truncateTitle(explicitTitle, ctx.options.maxTitleLength) : title, link });
+      items.push({ text: explicitTitle(ctx, indexConfig?.title, path.posix.join(fullDir, indexFile)) ?? title, link });
     }
   }
   const children = collectChildEntries(ctx, dirPath, true, currentDepth, directives);
@@ -363,7 +363,7 @@ function collectChildEntries(
   currentDepth: number,
   directives: SidebarDirective[],
 ): ChildEntries {
-  const { maxDepth, maxTitleLength } = ctx.options;
+  const { maxDepth } = ctx.options;
   const fullDir = path.posix.join(ctx.rootPath, dirPath);
   const deferredGroups = new Map<string, SidebarItem>();
   const headingGroups: SidebarItem[] = [];
@@ -444,24 +444,23 @@ function collectChildEntries(
 
     if (type === 'heading') {
       currentHeading = {
-        text: truncateTitle(titleOverrides.get(name) ?? name, maxTitleLength),
+        text: ctx.titles.fromText(titleOverrides.get(name) ?? name, 'config'),
         items: [],
         collapsed: ctx.options.collapsed,
       };
       headingGroups.push(currentHeading);
     } else if (type === 'file') {
-      const explicitTitle = titleOverrides.get(name) ?? getMarkdownTitle(path.posix.join(fullDir, name));
       place({
-        text: explicitTitle ? truncateTitle(explicitTitle, maxTitleLength) : formatTitle(name, maxTitleLength),
+        text: explicitTitle(ctx, titleOverrides.get(name), path.posix.join(fullDir, name)) ?? ctx.titles.fromName(name),
         link: toFileUrl(dirPath, name),
       });
     } else if (type === 'weblink') {
-      place({ text: truncateTitle(titleOverrides.get(name) ?? name, maxTitleLength), link: name });
+      place({ text: ctx.titles.fromText(titleOverrides.get(name) ?? name, 'config'), link: name });
     } else if (type === 'directory' && currentDepth < maxDepth) {
       const child = buildDirectorySidebarItem(
         ctx,
         path.posix.join(dirPath, name),
-        formatTitle(name, maxTitleLength),
+        ctx.titles.fromName(name),
         currentDepth + 1,
       );
       if (!child) continue;
@@ -509,8 +508,9 @@ function listChildDirectories(ctx: GenerateContext, dirPath: string, directives:
 
 /**
  * Resolves a directory's section title: an explicit title on its entry in the
- * *parent's* `.sidebar` file wins, then its README's `section-title`
- * frontmatter, then `fallbackTitle` (normally `formatTitle(dirname)`).
+ * *parent's* `.sidebar` file wins, then its landing page's `section-title`
+ * frontmatter, then (with `groupTitleFromIndex`) its landing page's title,
+ * then `fallbackTitle` (normally the formatted directory name).
  */
 function resolveDirectoryTitle(ctx: GenerateContext, dirPath: string, fallbackTitle: string): string {
   const fullDir = path.posix.join(ctx.rootPath, dirPath);
@@ -520,16 +520,31 @@ function resolveDirectoryTitle(ctx: GenerateContext, dirPath: string, fallbackTi
   const parentConfigItems = readSidebarConfigFile(parentFullDir, ctx.options.configFilenames, ctx.options.verbose);
   if (parentConfigItems.length) {
     const match = parseSidebarDirectives(parentConfigItems).find((i) => i.name === baseName);
-    if (match?.title) return truncateTitle(match.title, ctx.options.maxTitleLength);
+    if (match?.title) return ctx.titles.fromText(match.title, 'config');
   }
 
   const indexFile = getIndexFilename(fullDir);
   if (indexFile) {
-    const sectionTitle = getSectionTitleFrontmatter(path.posix.join(fullDir, indexFile));
-    if (sectionTitle) return truncateTitle(sectionTitle, ctx.options.maxTitleLength);
+    const indexPath = path.posix.join(fullDir, indexFile);
+    const sectionTitle = getSectionTitleFrontmatter(indexPath);
+    if (sectionTitle) return ctx.titles.fromText(sectionTitle, 'page');
+    if (ctx.options.groupTitleFromIndex) {
+      const pageTitle = getMarkdownTitle(indexPath);
+      if (pageTitle) return ctx.titles.fromText(pageTitle, 'page');
+    }
   }
 
   return fallbackTitle;
+}
+
+/**
+ * An entry's explicit title: its `.sidebar` title if it has one, else its
+ * page's `title` frontmatter or first `# Heading`, or `null` if it has none.
+ */
+function explicitTitle(ctx: GenerateContext, configTitle: string | undefined, filePath: string): string | null {
+  if (configTitle) return ctx.titles.fromText(configTitle, 'config');
+  const pageTitle = getMarkdownTitle(filePath);
+  return pageTitle ? ctx.titles.fromText(pageTitle, 'page') : null;
 }
 
 /**

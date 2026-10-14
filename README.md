@@ -67,9 +67,13 @@ format. See [Grouping subdirectories](#grouping-subdirectories) below for how
 that grouping is controlled.
 
 A directory's landing page — `index.md` if present, otherwise `README.md`
-(both matched case-insensitively; VitePress auto-rewrites either to
-`index.html`) — becomes that section/group's landing link; every other
-`*.md` file becomes a child entry. A file's title is resolved, in order:
+(both matched case-insensitively) — becomes that section/group's landing
+link; every other `*.md` file becomes a child entry. VitePress itself only
+serves `index.md` at the directory URL: a `README.md` is served at
+`README.html`. For `README.md` landing pages, add
+[README Index](https://binarynoir.tech/plugins/readme-index/)
+(`readmeRewrites` and `readmeLinks`), which serves them at the directory URL
+and points links to them there. A file's title is resolved, in order:
 
 1. An explicit title from a `.sidebar` line (see below).
 2. The `title` frontmatter field.
@@ -85,15 +89,56 @@ non-page content.
 
 ## Options
 
-| Option              | Default        | Description                                                                                                                                                                                                                    |
-| ------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `maxDepth`          | `3`            | How many directory levels deep to recurse.                                                                                                                                                                                     |
-| `maxTitleLength`    | `50`           | Truncate generated titles beyond this length.                                                                                                                                                                                  |
-| `configFilenames`   | `['.sidebar']` | Filenames checked for per-directory ordering config.                                                                                                                                                                           |
-| `excludeFilenames`  | `['.exclude']` | Filenames checked for per-directory exclusion rules.                                                                                                                                                                           |
-| `collapsed`         | `false`        | Initial `collapsed` state applied to generated section headers (the ones that still have `items` after flattening, see below).                                                                                                 |
-| `flattenSinglePage` | `true`         | Collapse a subdirectory into a plain link in its parent group instead of its own sibling group, when it has only one visible entry (typically just its landing page). See [Grouping subdirectories](#grouping-subdirectories). |
-| `verbose`           | `false`        | Log each directory as it's processed.                                                                                                                                                                                          |
+| Option                | Default        | Description                                                                                                                                                                                                                    |
+| --------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `maxDepth`            | `3`            | How many directory levels deep to recurse.                                                                                                                                                                                     |
+| `maxTitleLength`      | `50`           | Truncate generated titles beyond this length.                                                                                                                                                                                  |
+| `configFilenames`     | `['.sidebar']` | Filenames checked for per-directory ordering config.                                                                                                                                                                           |
+| `excludeFilenames`    | `['.exclude']` | Filenames checked for per-directory exclusion rules.                                                                                                                                                                           |
+| `collapsed`           | `false`        | Initial `collapsed` state applied to generated section headers (the ones that still have `items` after flattening, see below).                                                                                                 |
+| `flattenSinglePage`   | `true`         | Collapse a subdirectory into a plain link in its parent group instead of its own sibling group, when it has only one visible entry (typically just its landing page). See [Grouping subdirectories](#grouping-subdirectories). |
+| `titleReplacements`   | `{}`           | Words to replace in titles made from file and folder names, e.g. `{ github: "GitHub" }`. See [Titles](#titles).                                                                                                                |
+| `stripTags`           | `true`         | Remove markdown-tags syntax (`((tag\|draft))`) from titles. See [Titles](#titles).                                                                                                                                             |
+| `transformTitle`      | none           | A function that gets every title, and its source, before truncation. See [Titles](#titles).                                                                                                                                    |
+| `groupTitleFromIndex` | `false`        | Label a folder's group with its landing page's title before falling back to the folder name. See [Titles](#titles).                                                                                                            |
+| `verbose`             | `false`        | Log each directory as it's processed.                                                                                                                                                                                          |
+
+## Titles
+
+A title made from a file or folder name is formatted: `getting-started.md`
+becomes "Getting Started". `formatTitle` only capitalises first letters, so
+use `titleReplacements` for words with other casing. Keys match whole words,
+ignoring case, and the values are used as written:
+
+```ts
+generateSidebar(docsRoot, {
+  titleReplacements: { github: 'GitHub', api: 'API', cicd: 'CI/CD' },
+});
+// github-actions/ → "GitHub Actions", cicd-setup.md → "CI/CD Setup"
+```
+
+Titles an author wrote (a heading, `title` frontmatter, a `.sidebar` line) are
+never changed by `titleReplacements`.
+
+Every title has [markdown-tags](https://binarynoir.tech/plugins/markdown-tags/)
+syntax removed, so `# Design ((tag|draft))` is listed as "Design". Set
+`stripTags: false` to keep it.
+
+For anything else, `transformTitle` gets every title before it is truncated,
+along with where it came from: `"name"` (a file or folder name), `"page"` (a
+page's frontmatter or first heading) or `"config"` (a `.sidebar` line). Return
+the title to use, or `undefined` to keep it:
+
+```ts
+generateSidebar(docsRoot, {
+  transformTitle: (title, { source }) => (source === 'page' ? title.replace(/^Guide: /, '') : undefined),
+});
+```
+
+With `groupTitleFromIndex: true`, a folder whose group isn't named by its
+parent's `.sidebar` or a `section-title` is labelled with its landing page's
+`title` frontmatter or first `# Heading`, before falling back to the
+formatted folder name.
 
 ## Grouping subdirectories
 
@@ -178,6 +223,13 @@ migrations.md:Migrations
 | `.hideall` (or `.hide-all`) | Skip this directory and everything under it.                            |
 | `[Group Title]`             | Start a heading group. See [Heading groups](#heading-groups).           |
 
+Titles may be bare, `"double-quoted"` or `'single-quoted'`, with optional
+whitespace after the colon, so `name.md: "Title"` and
+`https://example.com: 'Title'` both work. The quotes around a URL are
+optional too. A line that can't be parsed as written, such as a link with no
+title or a title with unmatched quotes, logs a warning naming the file and
+line.
+
 `name` is matched against the exact on-disk entry: a **file** entry needs its
 `.md` extension (`introduction.md`, not `introduction`). A file line missing
 its extension won't match anything — it's silently dropped into the
@@ -190,7 +242,8 @@ there's no `...` at all).
 
 A directory's own section/group title is resolved, in order: an explicit
 `name:Title` for it in its _parent's_ `.sidebar`, then a `section-title`
-frontmatter field on its own `README.md`, then its formatted directory name.
+frontmatter field on its own landing page, then (with `groupTitleFromIndex`)
+its landing page's title, then its formatted directory name.
 
 ### Heading groups
 

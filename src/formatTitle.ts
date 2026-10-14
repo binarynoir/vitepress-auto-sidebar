@@ -4,11 +4,15 @@
  * - Strips a `.md` extension.
  * - Strips a leading numeric ordering prefix (`01-`, `02_`, `03.`).
  * - Replaces `-` and `_` separators with spaces.
- * - Title-cases each word, except words that are already all-caps (acronyms
- *   like `CI` or `API` are left alone).
+ * - Replaces each word found in `replacements` (matched case-insensitively)
+ *   with its value, as written: `{ github: 'GitHub' }` turns `github-actions` into
+ *   "GitHub Actions".
+ * - Title-cases each other word, except words that are already all-caps
+ *   (acronyms like `CI` or `API` are left alone).
  * - Truncates to `maxLength`, appending an ellipsis if truncated.
  */
-export function formatTitle(input: string, maxLength = 50): string {
+export function formatTitle(input: string, maxLength = 50, replacements: Record<string, string> = {}): string {
+  const replace = new Map(Object.entries(replacements).map(([word, value]) => [word.toLowerCase(), value]));
   let title = input.replace(/\.md$/i, '');
   title = title.replace(/^\d+[-_.]\s*/, '');
   title = title.replace(/[-_]+/g, ' ').trim();
@@ -18,6 +22,8 @@ export function formatTitle(input: string, maxLength = 50): string {
     .split(' ')
     .map((word) => {
       if (!word) return word;
+      const replacement = replace.get(word.toLowerCase());
+      if (replacement !== undefined) return replacement;
       if (word.length > 1 && word === word.toUpperCase() && /[A-Z]/.test(word)) {
         return word; // preserve acronyms
       }

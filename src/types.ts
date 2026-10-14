@@ -32,9 +32,43 @@ export interface GenerateSidebarOptions {
    * its own group, even single-page ones.
    */
   flattenSinglePage?: boolean;
+  /**
+   * Words to replace in titles derived from file and directory names, matched
+   * case-insensitively against each word, e.g. `{ github: 'GitHub', cicd: 'CI/CD' }`
+   * turns `github-actions` into "GitHub Actions". Titles an author wrote (headings,
+   * frontmatter, `.sidebar` lines) are left alone. Default: `{}`.
+   */
+  titleReplacements?: Record<string, string>;
+  /**
+   * Remove markdown-tags syntax (`((tag|draft))`, from
+   * `@binarynoir/vitepress-markdown-tags`) from every title. Default: true.
+   */
+  stripTags?: boolean;
+  /**
+   * Called with every title before it is truncated, after `titleReplacements`
+   * and `stripTags`. Return the title to use, or `undefined` to keep it.
+   */
+  transformTitle?: TransformTitle;
+  /**
+   * Label a directory's group with its landing page's title (its `title`
+   * frontmatter, else its first `# Heading`) when neither its parent's
+   * `.sidebar` nor a `section-title` names it, before falling back to the
+   * formatted directory name. Default: false.
+   */
+  groupTitleFromIndex?: boolean;
   /** Log what the generator is doing as it walks the docs tree. Default: false. */
   verbose?: boolean;
 }
+
+/**
+ * Where a title came from: `name` is derived from a file or directory name,
+ * `page` from a page's `title`/`section-title` frontmatter or first `# Heading`,
+ * and `config` from a `.sidebar` line.
+ */
+export type TitleSource = 'name' | 'page' | 'config';
+
+/** See {@link GenerateSidebarOptions.transformTitle}. */
+export type TransformTitle = (title: string, context: { source: TitleSource }) => string | undefined;
 
 /** Fully-resolved options, after defaults have been applied. */
 export interface ResolvedSidebarOptions {
@@ -44,6 +78,10 @@ export interface ResolvedSidebarOptions {
   excludeFilenames: string[];
   collapsed: boolean;
   flattenSinglePage: boolean;
+  titleReplacements: Record<string, string>;
+  stripTags: boolean;
+  transformTitle?: TransformTitle;
+  groupTitleFromIndex: boolean;
   verbose: boolean;
 }
 

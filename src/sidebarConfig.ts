@@ -10,7 +10,10 @@ import type { SidebarFrontmatter, SidebarItem, SidebarMulti } from './types.js';
  * Syntax supported (one directive per line, `#` starts a comment):
  *   itemName                       order a file or subdirectory
  *   itemName:Custom Title          order + override its display title
+ *   itemName: "Custom Title"       the same; titles may be single- or double-quoted,
+ *                                  with optional whitespace after the colon
  *   "https://example.com":Title    insert an external link in this section
+ *                                  (the URL's quotes are optional)
  *   ROOT="https://x.com":Title     insert an external link at the sidebar root
  *   -itemName                      hide this item (still processed if it's a
  *                                  directory whose own `.hide`/`.hideall` isn't set)
@@ -37,8 +40,13 @@ export function isHeadingName(name: string): boolean {
   return HEADING_RE.test(name);
 }
 
-const WEB_LINK_RE = /^["']?(https?:\/\/[^"':]+)["']?:(?:"([^"]+)"|'([^']+)'|([^"':]+))$/i;
-const QUOTED_TITLE_RE = /^([^:]+):(?:"([^"]+)"|'([^']+)')$/;
+// A URL, quoted or bare, then `:` and a title that is double-quoted,
+// single-quoted or bare, with optional whitespace around the colon. A bare
+// URL can't contain whitespace or quotes, so it ends at the last colon
+// before the title (keeping a port, as in `https://host:8080/path`).
+const WEB_LINK_RE =
+  /^(?:(["'])(https?:\/\/[^"']+)\1|(https?:\/\/[^\s"']+))\s*:\s*(?:"([^"]+)"|'([^']+)'|([^\s"'][^"']*))$/i;
+const QUOTED_TITLE_RE = /^([^:]+):\s*(?:"([^"]+)"|'([^']+)')$/;
 
 export function parseSidebarDirectives(rawLines: string[]): SidebarDirective[] {
   return rawLines.map((rawLine) => {
@@ -60,8 +68,8 @@ export function parseSidebarDirectives(rawLines: string[]): SidebarDirective[] {
 
     const webLinkMatch = item.match(WEB_LINK_RE);
     if (webLinkMatch) {
-      const url = webLinkMatch[1];
-      const title = (webLinkMatch[2] || webLinkMatch[3] || webLinkMatch[4]).trim();
+      const url = webLinkMatch[2] || webLinkMatch[3];
+      const title = (webLinkMatch[4] || webLinkMatch[5] || webLinkMatch[6]).trim();
       return { name: url, title, url, isWebLink: true, isRootLevel, hidden };
     }
 
@@ -83,6 +91,27 @@ export function parseSidebarDirectives(rawLines: string[]): SidebarDirective[] {
     return { name: item, isRootLevel, hidden };
   });
 }
+
+/**
+ * Why a `.sidebar` line can't be used as written, or `null` if it can: a link
+ * that isn't `URL:Title`, or a title whose quotes don't match. Such a line
+ * would otherwise be dropped from the sidebar, or keep its stray quotes.
+ */
+export function directiveProblem(line: string): string | null {
+  const [directive] = parseSidebarDirectives([line]);
+  if (directive.isHeading || directive.isWebLink) return null;
+  if (/https?:\/\//i.test(line)) {
+    return 'a link must be written as URL:Title, e.g. https://example.com:"Title"';
+  }
+  if (directive.title && /^["']/.test(directive.title)) {
+    return 'its title has unmatched quotes';
+  }
+  return null;
+}
+
+// Lines already warned about, so each is reported once per process even
+// though a `.sidebar` file is read for several passes of every build.
+const warnedLines = new Set<string>();
 
 /** The name/url a `SidebarDirective` is matched against when sorting. */
 function directiveKey(item: SidebarDirective): string {
@@ -152,11 +181,23 @@ export function readSidebarConfigFile(directoryPath: string, configFilenames: st
       const configFilePath = path.posix.join(directoryPath, filename);
       if (!fs.existsSync(configFilePath)) continue;
 
-      const items = fs
-        .readFileSync(configFilePath, 'utf-8')
+      const items: string[] = [];
+      fs.readFileSync(configFilePath, 'utf-8')
         .split('\n')
-        .map((line) => line.trim().replace(/\s+/g, ' '))
-        .filter((line) => line && !line.startsWith('#'));
+        .forEach((rawLine, index) => {
+          const line = rawLine.trim().replace(/\s+/g, ' ');
+          if (!line || line.startsWith('#')) return;
+          items.push(line);
+
+          const problem = directiveProblem(line);
+          const key = `${configFilePath}:${index + 1}:${line}`;
+          if (problem && !warnedLines.has(key)) {
+            warnedLines.add(key);
+            console.warn(
+              `[vitepress-auto-sidebar] could not parse "${line}" at ${configFilePath}:${index + 1}: ${problem}`,
+            );
+          }
+        });
 
       if (verbose) {
         console.log(`   config: ${filename} (${items.length} items) in ${directoryPath}`);
@@ -198,9 +239,10 @@ export function checkHideDirective(directoryPath: string, configFilenames: strin
 
 /**
  * Finds a directory's landing page file, preferring `index.md` (the native
- * VitePress convention) and falling back to `README.md` (which VitePress
- * also auto-rewrites to `index.html`). Both are matched case-insensitively;
- * returns the exact on-disk filename.
+ * VitePress convention) and falling back to `README.md`. VitePress serves a
+ * `README.md` at `README.html`, not the directory's index, unless it is
+ * rewritten (e.g. by `@binarynoir/vitepress-readme-index`). Both are matched
+ * case-insensitively; returns the exact on-disk filename.
  */
 export function getIndexFilename(directoryPath: string): string | null {
   try {

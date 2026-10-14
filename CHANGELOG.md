@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-10-14
+
+Replaces 0.6.0, which was withdrawn from npm. The changes are the same; only example names in the documentation differ.
+
+### Added
+
+- `titleReplacements` option: words to replace in titles made from file and folder names, e.g. `{ github: "GitHub" }` turns `github-actions` into "GitHub Actions"
+- `stripTags` option (default `true`): remove markdown-tags syntax (`((tag|draft))`) from titles
+- `transformTitle` option: a hook that gets every title, and where it came from, before truncation
+- `groupTitleFromIndex` option: label a folder's group with its landing page's `title` or first `# Heading` before falling back to the formatted folder name
+- `formatTitle` takes an optional third argument, the word replacements; `stripTagSyntax` is exported
+
+### Fixed
+
+- `.sidebar` link lines with whitespace after the colon and a quoted title (`https://example.com: "Title"`, `"https://example.com": 'Title'`) were silently dropped; they are now parsed, as are URLs with a port (`https://host:8080/path:Title`)
+- `name.md: "Title"` keeps no stray quotes in its title
+- A `.sidebar` line that can't be parsed (a link with no title, or a title with unmatched quotes) logs a warning naming the file and line, instead of being dropped silently
+- README: `README.md` landing pages need README Index to be served at the directory URL; VitePress serves them at `README.html` on its own
+
 ## [0.5.0] - 2026-10-14
 
 ### Added

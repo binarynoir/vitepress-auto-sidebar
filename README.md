@@ -98,6 +98,7 @@ non-page content.
 | `collapsed`           | `false`        | Initial `collapsed` state applied to generated section headers (the ones that still have `items` after flattening, see below).                                                                                                 |
 | `flattenSinglePage`   | `true`         | Collapse a subdirectory into a plain link in its parent group instead of its own sibling group, when it has only one visible entry (typically just its landing page). See [Grouping subdirectories](#grouping-subdirectories). |
 | `titleReplacements`   | `{}`           | Words to replace in titles made from file and folder names, e.g. `{ github: "GitHub" }`. See [Titles](#titles).                                                                                                                |
+| `titleCase`           | `true`         | Title-case titles made from file and folder names, keeping minor words like "to" and "the" lowercase. See [Titles](#titles).                                                                                                   |
 | `stripTags`           | `true`         | Remove markdown-tags syntax (`((tag\|draft))`) from titles. See [Titles](#titles).                                                                                                                                             |
 | `transformTitle`      | none           | A function that gets every title, and its source, before truncation. See [Titles](#titles).                                                                                                                                    |
 | `groupTitleFromIndex` | `false`        | Label a folder's group with its landing page's title before falling back to the folder name. See [Titles](#titles).                                                                                                            |
@@ -106,8 +107,13 @@ non-page content.
 ## Titles
 
 A title made from a file or folder name is formatted: `getting-started.md`
-becomes "Getting Started". `formatTitle` only capitalises first letters, so
-use `titleReplacements` for words with other casing. Keys match whole words,
+becomes "Getting Started". It is title-cased: articles, short conjunctions
+and prepositions (`a`, `the`, `and`, `of`, `to`, …) stay lowercase unless they
+are the first or last word, so `guide-to-the-cli` becomes "Guide to the Cli".
+Set `titleCase: false` to capitalise every word instead.
+
+Casing only changes first letters, so use `titleReplacements` for words with
+other casing. Keys match whole words,
 ignoring case, and the values are used as written:
 
 ```ts

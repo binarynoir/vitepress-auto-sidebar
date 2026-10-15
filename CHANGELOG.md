@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-14
+
+### Added
+
+- `titleCase` option (default `true`): titles made from file and folder names are title-cased, so articles, short conjunctions and prepositions stay lowercase unless they are the first or last word (`guide-to-the-cli` → "Guide to the Cli"). Set it to `false` to capitalise every word, as before
+- `formatTitle` takes an optional fourth argument, `titleCase`
+
+### Changed
+
+- Titles made from file and folder names keep minor words such as "a", "and", "of", "the" and "to" lowercase mid-title; titles an author wrote are unchanged
+
 ## [0.6.1] - 2026-10-14
 
 Replaces 0.6.0, which was withdrawn from npm. The changes are the same; only example names in the documentation differ.

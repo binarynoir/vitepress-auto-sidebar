@@ -40,6 +40,13 @@ export interface GenerateSidebarOptions {
    */
   titleReplacements?: Record<string, string>;
   /**
+   * Title-case titles derived from file and directory names: minor words
+   * (`a`, `the`, `and`, `of`, `to`, …) stay lowercase unless first or last, so
+   * `guide-to-the-cli` becomes "Guide to the Cli". Set to `false` to capitalise
+   * every word. Titles an author wrote are left alone. Default: true.
+   */
+  titleCase?: boolean;
+  /**
    * Remove markdown-tags syntax (`((tag|draft))`, from
    * `@binarynoir/vitepress-markdown-tags`) from every title. Default: true.
    */
@@ -79,6 +86,7 @@ export interface ResolvedSidebarOptions {
   collapsed: boolean;
   flattenSinglePage: boolean;
   titleReplacements: Record<string, string>;
+  titleCase: boolean;
   stripTags: boolean;
   transformTitle?: TransformTitle;
   groupTitleFromIndex: boolean;

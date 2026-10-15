@@ -19,6 +19,17 @@ describe('formatTitle', () => {
     expect(formatTitle('api-API-docs')).toBe('Api API Docs');
   });
 
+  it('keeps minor words lowercase unless first or last', () => {
+    expect(formatTitle('guide-to-the-cli')).toBe('Guide to the Cli');
+    expect(formatTitle('the-state-of-the-art')).toBe('The State of the Art');
+    expect(formatTitle('what-to-log-in')).toBe('What to Log In');
+    expect(formatTitle('Tips-And-Tricks')).toBe('Tips and Tricks');
+  });
+
+  it('capitalises every word when titleCase is off', () => {
+    expect(formatTitle('guide-to-the-cli', 50, {}, false)).toBe('Guide To The Cli');
+  });
+
   it('truncates long titles with an ellipsis', () => {
     const result = formatTitle('a-very-long-directory-name-that-exceeds-the-limit', 20);
     expect(result.length).toBe(20);

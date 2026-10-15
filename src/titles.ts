@@ -13,6 +13,7 @@ export function stripTagSyntax(title: string): string {
 export interface TitleOptions {
   maxTitleLength: number;
   titleReplacements: Record<string, string>;
+  titleCase: boolean;
   stripTags: boolean;
   transformTitle?: TransformTitle;
 }
@@ -33,7 +34,7 @@ export function createTitles(options: TitleOptions): Titles {
   };
   return {
     // Formatted without truncation; `finish` truncates once, after the transform.
-    fromName: (name) => finish(formatTitle(name, 0, options.titleReplacements), 'name'),
+    fromName: (name) => finish(formatTitle(name, 0, options.titleReplacements, options.titleCase), 'name'),
     fromText: (text, source) => finish(text, source),
   };
 }

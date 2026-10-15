@@ -42,6 +42,7 @@ export function generateSidebar(rootPath: string, options: GenerateSidebarOption
     collapsed: options.collapsed ?? false,
     flattenSinglePage: options.flattenSinglePage ?? true,
     titleReplacements: options.titleReplacements ?? {},
+    titleCase: options.titleCase ?? true,
     stripTags: options.stripTags ?? true,
     transformTitle: options.transformTitle,
     groupTitleFromIndex: options.groupTitleFromIndex ?? false,

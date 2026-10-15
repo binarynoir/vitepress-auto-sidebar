@@ -1,6 +1,13 @@
 // Articles, coordinating conjunctions and short prepositions, kept lowercase
 // mid-title by title case.
-const MINOR_WORDS = new Set('a an the and but for nor or so yet as at by in of off on per to up via vs'.split(' '));
+const MINOR_WORDS = new Set(
+  'a an the and but for nor or so yet as at by from in into near of off on onto per to up via vs with'.split(' '),
+);
+
+/** `text` with `-`/`_` separators turned into single spaces, trimmed. */
+function spaceWords(text: string): string {
+  return text.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
 
 /**
  * Turns a filename or directory name into a human-readable sidebar title.
@@ -8,9 +15,11 @@ const MINOR_WORDS = new Set('a an the and but for nor or so yet as at by in of o
  * - Strips a `.md` extension.
  * - Strips a leading numeric ordering prefix (`01-`, `02_`, `03.`).
  * - Replaces `-` and `_` separators with spaces.
- * - Replaces each word found in `replacements` (matched case-insensitively)
- *   with its value, as written: `{ github: 'GitHub' }` turns `github-actions` into
- *   "GitHub Actions".
+ * - Strips matching surrounding quotes (`"name"` or `'name'`).
+ * - Replaces each word or phrase found in `replacements` (matched
+ *   case-insensitively, longest phrase first) with its value, as written:
+ *   `{ github: 'GitHub', 'vs code': 'VS Code' }` turns `github-actions` into
+ *   "GitHub Actions" and `vs-code-setup` into "VS Code Setup".
  * - Capitalizes each other word, except words that are already all-caps
  *   (acronyms like `CI` or `API` are left alone).
  * - With `titleCase` (the default), keeps minor words (articles, short
@@ -25,22 +34,39 @@ export function formatTitle(
   replacements: Record<string, string> = {},
   titleCase = true,
 ): string {
-  const replace = new Map(Object.entries(replacements).map(([word, value]) => [word.toLowerCase(), value]));
+  // Keys are split into words the same way as titles, so `vs-code` and `vs code` match alike.
+  const phrases = Object.entries(replacements)
+    .map(([key, value]) => ({ words: spaceWords(key).toLowerCase().split(' '), value }))
+    .filter(({ words }) => words[0] !== '')
+    .sort((a, b) => b.words.length - a.words.length);
+
   let title = input.replace(/\.md$/i, '');
   title = title.replace(/^\d+[-_.]\s*/, '');
-  title = title.replace(/[-_]+/g, ' ').trim();
-  title = title.replace(/\s+/g, ' ');
+  title = spaceWords(title);
+  title = title.replace(/^(['"])(.*)\1$/, '$2').trim();
 
+  // Each part is a word to case, or a replacement to keep exactly as written.
   const words = title.split(' ');
-  title = words
-    .map((word, i) => {
-      if (!word) return word;
-      const replacement = replace.get(word.toLowerCase());
-      if (replacement !== undefined) return replacement;
+  const parts: { text: string; fixed: boolean }[] = [];
+  for (let i = 0; i < words.length;) {
+    const lower = words.slice(i).map((word) => word.toLowerCase());
+    const match = phrases.find((phrase) => phrase.words.every((word, j) => lower[j] === word));
+    if (match) {
+      parts.push({ text: match.value, fixed: true });
+      i += match.words.length;
+    } else {
+      parts.push({ text: words[i], fixed: false });
+      i += 1;
+    }
+  }
+
+  title = parts
+    .map(({ text: word, fixed }, i) => {
+      if (!word || fixed) return word;
       if (word.length > 1 && word === word.toUpperCase() && /[A-Z]/.test(word)) {
         return word; // preserve acronyms
       }
-      if (titleCase && i > 0 && i < words.length - 1 && MINOR_WORDS.has(word.toLowerCase())) {
+      if (titleCase && i > 0 && i < parts.length - 1 && MINOR_WORDS.has(word.toLowerCase())) {
         return word.toLowerCase();
       }
       return word.charAt(0).toUpperCase() + word.slice(1);

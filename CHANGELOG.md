@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-10-15
+
+### Added
+
+- `titleReplacements` keys can be phrases: `{ 'vs code': 'VS Code' }` turns `vs-code-setup` into "VS Code Setup". The longest matching phrase wins
+- Titles made from file and folder names drop matching surrounding quotes (`"draft-notes"` → "Draft Notes")
+- README documents the exported title helpers (`formatTitle`, `truncateTitle`, `stripTagSyntax`) and where they can run
+
+### Changed
+
+- Title case also keeps `from`, `into`, `near`, `onto` and `with` lowercase mid-title
+
 ## [0.7.0] - 2026-10-14
 
 ### Added

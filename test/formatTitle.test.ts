@@ -35,6 +35,31 @@ describe('formatTitle', () => {
     expect(result.length).toBe(20);
     expect(result.endsWith('…')).toBe(true);
   });
+
+  it('strips matching surrounding quotes', () => {
+    expect(formatTitle('"quoted-name"')).toBe('Quoted Name');
+    expect(formatTitle("'single'")).toBe('Single');
+    expect(formatTitle('"unbalanced')).toBe('"unbalanced');
+  });
+
+  it('keeps from, into, near, onto and with lowercase mid-title', () => {
+    expect(formatTitle('working-with-data-from-apis-into-sql')).toBe('Working with Data from Apis into Sql');
+    expect(formatTitle('near-the-edge-onto-it')).toBe('Near the Edge onto It');
+  });
+
+  it('applies word and multi-word replacements as written', () => {
+    const replacements = {
+      github: 'GitHub',
+      'vs code': 'VS Code',
+      'visual-studio-code': 'Visual Studio Code',
+      ios: 'iOS',
+    };
+    expect(formatTitle('github-actions', 50, replacements)).toBe('GitHub Actions');
+    expect(formatTitle('setup-vs-code-and-github', 50, replacements)).toBe('Setup VS Code and GitHub');
+    expect(formatTitle('Visual_Studio_Code-tips', 50, replacements)).toBe('Visual Studio Code Tips');
+    expect(formatTitle('ios-apps', 50, replacements)).toBe('iOS Apps');
+    expect(formatTitle('vs-other', 50, replacements)).toBe('Vs Other');
+  });
 });
 
 describe('truncateTitle', () => {

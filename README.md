@@ -110,17 +110,19 @@ A title made from a file or folder name is formatted: `getting-started.md`
 becomes "Getting Started". It is title-cased: articles, short conjunctions
 and prepositions (`a`, `the`, `and`, `of`, `to`, …) stay lowercase unless they
 are the first or last word, so `guide-to-the-cli` becomes "Guide to the Cli".
-Set `titleCase: false` to capitalise every word instead.
+Set `titleCase: false` to capitalise every word instead. Surrounding quotes
+are dropped, so `"draft-notes"` becomes "Draft Notes".
 
 Casing only changes first letters, so use `titleReplacements` for words with
-other casing. Keys match whole words,
-ignoring case, and the values are used as written:
+other casing. Keys match whole words or phrases, ignoring case (the longest
+phrase wins), and the values are used as written:
 
 ```ts
 generateSidebar(docsRoot, {
-  titleReplacements: { github: 'GitHub', api: 'API', cicd: 'CI/CD' },
+  titleReplacements: { github: 'GitHub', api: 'API', cicd: 'CI/CD', 'vs code': 'VS Code' },
 });
-// github-actions/ → "GitHub Actions", cicd-setup.md → "CI/CD Setup"
+// github-actions/ → "GitHub Actions", cicd-setup.md → "CI/CD Setup",
+// vs-code-tips.md → "VS Code Tips"
 ```
 
 Titles an author wrote (a heading, `title` frontmatter, a `.sidebar` line) are
@@ -145,6 +147,36 @@ With `groupTitleFromIndex: true`, a folder whose group isn't named by its
 parent's `.sidebar` or a `section-title` is labelled with its landing page's
 `title` frontmatter or first `# Heading`, before falling back to the
 formatted folder name.
+
+### Using the title helpers in your own code
+
+The functions that format titles are exported, so your `config.mts`, a build
+script or another plugin can make titles that match the sidebar:
+
+```ts
+import { formatTitle, truncateTitle, stripTagSyntax } from '@binarynoir/vitepress-auto-sidebar';
+
+formatTitle('02-setting-up-vs-code.md', 50, { 'vs code': 'VS Code' }); // "Setting up VS Code"
+formatTitle('guide-to-the-cli', 50, {}, false); // "Guide To The Cli"
+truncateTitle('A fairly long human-written title', 15); // "A fairly long…"
+stripTagSyntax('Design ((tag|draft))'); // "Design"
+```
+
+| Function                                                   | What it does                                                                                                                                                             |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `formatTitle(name, maxLength?, replacements?, titleCase?)` | Turns a file or folder name into a title, following every rule above. `maxLength` defaults to `50` (`0` for no limit), `replacements` to `{}` and `titleCase` to `true`. |
+| `truncateTitle(title, maxLength?)`                         | Shortens a title someone wrote to `maxLength` (default `50`), adding `…`, without changing its casing or punctuation.                                                    |
+| `stripTagSyntax(title)`                                    | Removes markdown-tags syntax (`((tag\|draft))`) and tidies the spacing.                                                                                                  |
+
+Pass `formatTitle` a single file or folder name, not a path: it doesn't split
+on `/`. To match your sidebar, pass the same `titleReplacements` and `titleCase`
+you gave `generateSidebar`.
+
+These run in Node: in `.vitepress/config.mts`, build scripts, and Vite or
+markdown-it plugins. The package entry also loads the sidebar generator, which
+uses `fs`, so don't import it into code that runs in the browser (a Vue
+component or the theme's `enhanceApp`). Format titles at build time instead,
+and pass them to the page through frontmatter, a data loader or `themeConfig`.
 
 ## Grouping subdirectories
 

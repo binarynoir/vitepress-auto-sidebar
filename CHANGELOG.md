@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-10-16
+
+### Changed
+
+- Update dev dependencies: tsup 9, ESLint, typescript-eslint, Prettier, Vite, Vitest and `@types/node`. No change to the published package
+
 ## [0.8.0] - 2026-10-16
 
 ### Changed

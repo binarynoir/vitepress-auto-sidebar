@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import matter from 'gray-matter';
+import { readFrontmatter } from './frontmatter.js';
 import { getErrorMessage } from './util.js';
 import type { SidebarFrontmatter, SidebarItem, SidebarMulti } from './types.js';
 
@@ -271,7 +271,7 @@ export function isIndexFilename(filename: string): boolean {
 export function getMarkdownTitle(filePath: string): string | null {
   try {
     const raw = fs.readFileSync(filePath, 'utf-8');
-    const { data, content } = matter(raw);
+    const { data, content } = readFrontmatter(raw);
     const frontmatter = data as SidebarFrontmatter;
     if (frontmatter.title?.trim()) return frontmatter.title.trim();
 
@@ -287,7 +287,7 @@ export function getMarkdownTitle(filePath: string): string | null {
 export function getSectionTitleFrontmatter(readmePath: string): string | null {
   try {
     const raw = fs.readFileSync(readmePath, 'utf-8');
-    const frontmatter = matter(raw).data as SidebarFrontmatter;
+    const frontmatter = readFrontmatter(raw).data as SidebarFrontmatter;
     return frontmatter['section-title']?.trim() || null;
   } catch (error) {
     console.warn(`[vitepress-auto-sidebar] failed to read frontmatter from ${readmePath}: ${getErrorMessage(error)}`);

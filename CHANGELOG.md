@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-16
+
+### Changed
+
+- Frontmatter is now read with the maintained [`yaml`](https://github.com/eemeli/yaml) package instead of `gray-matter`, which has had no release since 2023 and pulled in `js-yaml` 3 and a `sprintf-js` advisory. Frontmatter is parsed as YAML 1.2, so an unquoted `yes` or `no` in a title is kept as text
+
 ## [0.7.2] - 2026-10-15
 
 ### Changed

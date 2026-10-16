@@ -56,9 +56,6 @@
     "release:minor": "node scripts/release.js minor",
     "release:major": "node scripts/release.js major"
   },
-  "dependencies": {
-    "gray-matter": "^4.0.3"
-  },
   "devDependencies": {
     "@types/node": "^26.6.2",
     "eslint": "^10.11.0",
@@ -69,5 +66,8 @@
     "typescript-eslint": "^8.70.0",
     "vite": "^8.3.0",
     "vitest": "^5.0.1"
+  },
+  "dependencies": {
+    "yaml": "^2.9.1"
   }
 }

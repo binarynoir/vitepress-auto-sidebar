@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-20
+
 ### Added
 
 - `excludeFrontmatter` option: frontmatter keys that hide a page from the sidebar when they are `true`, such as `['draft']`, with dotted keys for nested values (`blog.draft`). The same option in `@binarynoir/vitepress-exclude` keeps those pages out of the build

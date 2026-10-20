@@ -34,7 +34,36 @@ function readPath(data: Record<string, unknown>, keyPath: string): unknown {
   return value;
 }
 
-const DATE_LIKE = /^\d{4}-\d{2}-\d{2}(?:[T ][\d:.]+(?:Z|[+-]\d{2}:?\d{2})?)?$/;
+// `2026-10-20`, then an optional `T` or space and `HH:mm[:ss[.sss]]`, then an optional `Z` or `±HH[:]mm`.
+const DATE_TIME =
+  /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3})\d*)?)?)?\s*(Z|[+-]\d{2}:?\d{2})?$/i;
+
+/**
+ * A frontmatter date or date and time as milliseconds, or `undefined` if it
+ * isn't one. A time without an offset is read as UTC, so pages sort the same
+ * on every build machine whatever its time zone; a date alone is the start
+ * of its day, so it sorts before the timed pages of the same day.
+ */
+export function toTimestamp(text: string): number | undefined {
+  const match = DATE_TIME.exec(text);
+  if (!match) return undefined;
+  const [, year, month, day, hour = '0', minute = '0', second = '0', millisecond = '0', offset] = match;
+  const wall = Date.UTC(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hour),
+    Number(minute),
+    Number(second),
+    Number(millisecond.padEnd(3, '0')),
+  );
+  const check = new Date(wall);
+  if (check.getUTCMonth() !== Number(month) - 1 || check.getUTCDate() !== Number(day)) return undefined;
+  if (!offset || offset.toUpperCase() === 'Z') return wall;
+  const sign = offset.startsWith('-') ? -1 : 1;
+  const digits = offset.slice(1).replace(':', '');
+  return wall - sign * (Number(digits.slice(0, 2)) * 60 + Number(digits.slice(2))) * 60_000;
+}
 
 type SortValue = number | string;
 
@@ -49,10 +78,8 @@ function toSortValue(value: unknown): SortValue | undefined {
   if (typeof value === 'boolean') return value ? 1 : undefined;
   if (typeof value !== 'string' || !value.trim()) return undefined;
   const text = value.trim();
-  if (DATE_LIKE.test(text)) {
-    const time = new Date(text).getTime();
-    if (!Number.isNaN(time)) return time;
-  }
+  const time = toTimestamp(text);
+  if (time !== undefined) return time;
   return text;
 }
 

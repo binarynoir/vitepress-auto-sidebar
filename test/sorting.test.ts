@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { generateSidebar } from '../src/generateSidebar.js';
 import { directiveProblem, parseSidebarDirectives, parseSidebarSettings } from '../src/sidebarConfig.js';
-import { parseSort } from '../src/sorting.js';
+import { parseSort, toTimestamp } from '../src/sorting.js';
 import type { SidebarItem } from '../src/types.js';
 import { createFixture, removeFixture, type Tree } from './testUtils.js';
 
@@ -264,5 +264,37 @@ describe('.limit and .more', () => {
     const result = directiveProblem(line);
     if (problem === null) expect(result).toBeNull();
     else expect(result).toContain(problem);
+  });
+});
+
+describe('dates and times', () => {
+  it('reads a time without an offset as UTC, whatever the machine', () => {
+    expect(toTimestamp('2026-10-20 14:30')).toBe(Date.UTC(2026, 9, 20, 14, 30));
+    expect(toTimestamp('2026-10-20T14:30:15.5')).toBe(Date.UTC(2026, 9, 20, 14, 30, 15, 500));
+    expect(toTimestamp('2026-10-20')).toBe(Date.UTC(2026, 9, 20));
+  });
+
+  it('reads an offset or Z as written', () => {
+    expect(toTimestamp('2026-10-20T14:30:00-04:00')).toBe(Date.UTC(2026, 9, 20, 18, 30));
+    expect(toTimestamp('2026-10-20T14:30:00Z')).toBe(Date.UTC(2026, 9, 20, 14, 30));
+  });
+
+  it.each([['2026-02-30'], ['2026-10-20 25:00'], ['October 20, 2026']])('does not read %s as a date', (text) => {
+    expect(toTimestamp(text)).toBeUndefined();
+  });
+
+  it('sorts meetings on the same day by their times, a date alone first when ascending', () => {
+    const sidebar = build({
+      meetings: {
+        'index.md': '# Meetings',
+        'standup.md': post('Standup', '2026-10-20 09:30'),
+        'review.md': post('Review', '2026-10-20T15:00:00-04:00'),
+        'retro.md': post('Retro', '2026-10-20T16:00'),
+        'planning.md': post('Planning', '2026-10-20'),
+        '.sidebar': '.sort: date asc\n',
+      },
+    });
+    // Review is 19:00 UTC, after Retro at 16:00 UTC.
+    expect(texts(sidebar['/meetings/'][0].items!).slice(1)).toEqual(['Planning', 'Standup', 'Retro', 'Review']);
   });
 });

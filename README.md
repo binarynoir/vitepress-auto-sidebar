@@ -331,6 +331,7 @@ sorted by date, newest first.
 
 - The direction is `asc` (A to Z, oldest first, smallest first) unless you write `desc`.
 - Dates and numbers compare as dates and numbers, so `2` sorts before `10`.
+- Dates can carry a time: `2026-10-20`, `2026-10-20 14:30`, `2026-10-20T14:30:00`, or either with an offset (`-04:00`, `Z`). Pages from the same day sort by their times, and a date alone counts as the start of its day. A time without an offset is read as UTC, so the order is the same on every build machine; write offsets if your pages mix time zones.
 - Several keys, separated by commas, sort by the first and break ties with the
   next: `.sort: blog.sticky desc, date desc` puts sticky blog posts on top,
   each group newest first.

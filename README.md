@@ -101,6 +101,9 @@ non-page content.
 | `titleCase`           | `true`         | Title-case titles made from file and folder names, keeping minor words like "to" and "the" lowercase. See [Titles](#titles).                                                                                                   |
 | `stripTags`           | `true`         | Remove markdown-tags syntax (`((tag\|draft))`) from titles. See [Titles](#titles).                                                                                                                                             |
 | `transformTitle`      | none           | A function that gets every title, and its source, before truncation. See [Titles](#titles).                                                                                                                                    |
+| `sort`                | `'name'`       | How every folder orders the entries its `.sidebar` doesn't list, e.g. `'date desc'`. A folder's `.sort` setting wins. See [Settings](#settings).                                                                               |
+| `limit`               | `0`            | Most entries every folder shows of those its `.sidebar` doesn't list, after sorting. `0` for no limit. A folder's `.limit` wins. See [Limiting](#limiting).                                                                    |
+| `more`                | none           | When a limit leaves entries out, end with a link to the folder's landing page, titled with this text. A folder's `.more` wins.                                                                                                 |
 | `groupTitleFromIndex` | `false`        | Label a folder's group with its landing page's title before falling back to the folder name. See [Titles](#titles).                                                                                                            |
 | `verbose`             | `false`        | Log each directory as it's processed.                                                                                                                                                                                          |
 
@@ -249,17 +252,20 @@ migrations.md:Migrations
 "https://example.com/faq":FAQ
 ```
 
-| Syntax                      | Meaning                                                                 |
-| --------------------------- | ----------------------------------------------------------------------- |
-| `name`                      | Order this file/subdirectory.                                           |
-| `name:Custom Title`         | Order it and override its display title.                                |
-| `"https://…":Title`         | Insert an external link into this section, in place.                    |
-| `ROOT="https://…":Title`    | Insert an external link at the top level of the enclosing section.      |
-| `...`                       | Everything not listed explicitly goes here, alphabetically.             |
-| `-name`                     | Hide this entry entirely (it's still on disk, just not in the sidebar). |
-| `.hide`                     | Hide _this_ directory's own link, but keep showing its children.        |
-| `.hideall` (or `.hide-all`) | Skip this directory and everything under it.                            |
-| `[Group Title]`             | Start a heading group. See [Heading groups](#heading-groups).           |
+| Syntax                      | Meaning                                                                   |
+| --------------------------- | ------------------------------------------------------------------------- |
+| `name`                      | Order this file/subdirectory.                                             |
+| `name:Custom Title`         | Order it and override its display title.                                  |
+| `"https://…":Title`         | Insert an external link into this section, in place.                      |
+| `ROOT="https://…":Title`    | Insert an external link at the top level of the enclosing section.        |
+| `...`                       | Everything not listed explicitly goes here, alphabetically or by `.sort`. |
+| `-name`                     | Hide this entry entirely (it's still on disk, just not in the sidebar).   |
+| `.sort: key [asc\|desc], …` | A setting: how unlisted entries are ordered. See [Settings](#settings).   |
+| `.limit: n`                 | A setting: show at most `n` unlisted entries. See [Limiting](#limiting).  |
+| `.more: Text`               | A setting: a link to the landing page when entries were left out.         |
+| `.hide`                     | A setting: hide _this_ directory's own link, but keep its children.       |
+| `.hideall` (or `.hide-all`) | A setting: skip this directory and everything under it.                   |
+| `[Group Title]`             | Start a heading group. See [Heading groups](#heading-groups).             |
 
 Titles may be bare, `"double-quoted"` or `'single-quoted'`, with optional
 whitespace after the colon, so `name.md: "Title"` and
@@ -275,13 +281,91 @@ alphabetical `...` bucket instead of being ordered/retitled.
 
 Ordering: items listed before `...` come first, in the order listed; items
 listed after `...` come last, in the order listed; everything else is
-inserted alphabetically at the `...` marker (or appended alphabetically, if
-there's no `...` at all).
+inserted at the `...` marker (or appended, if there's no `...` at all),
+alphabetically unless a [`.sort` setting](#settings) says otherwise.
 
 A directory's own section/group title is resolved, in order: an explicit
 `name:Title` for it in its _parent's_ `.sidebar`, then a `section-title`
 frontmatter field on its own landing page, then (with `groupTitleFromIndex`)
 its landing page's title, then its formatted directory name.
+
+### Settings
+
+A line that starts with a dot is a setting for the folder, not an entry.
+Every setting is written the same way: `.name` turns it on, and
+`.name: value` gives it a value. They can go anywhere in the file.
+
+| Setting                     | What it does                                                                             |
+| --------------------------- | ---------------------------------------------------------------------------------------- |
+| `.sort: key [asc\|desc], …` | Order the entries this file doesn't list by `key`. Default: `name`.                      |
+| `.limit: n`                 | Show at most `n` of the entries this file doesn't list, after sorting. `0` for no limit. |
+| `.more: Text`               | When `.limit` left entries out, end with a link to the landing page titled `Text`.       |
+| `.hide`                     | Hide this folder's own link, but keep showing its children.                              |
+| `.hideall` (or `.hide-all`) | Leave this folder and everything under it out of the sidebar.                            |
+
+An unknown setting, or one with a value it can't use, logs a warning naming
+the file and line, and is ignored.
+[Auto Navbar](https://binarynoir.tech/plugins/auto-navbar)'s own settings,
+`.link` and `.inherit`, are left to it, so one `.sidebar` file can serve
+both plugins. Auto Navbar reads `.sort` too, so one line orders the sidebar and
+the navbar dropdown alike.
+
+#### Sorting
+
+```txt
+# docs/blog/.sidebar
+
+index.md:All posts
+.sort: date desc
+```
+
+The landing page stays first, because it is listed. Every other post is
+sorted by date, newest first.
+
+| Key           | Sorts by                                                                              |
+| ------------- | ------------------------------------------------------------------------------------- |
+| `name`        | The file or folder name. This is the default.                                         |
+| `title`       | The title shown in the sidebar, wherever it came from.                                |
+| `date`        | The page's `date` frontmatter, or `blog.date` for `@binarynoir/vitepress-blog` posts. |
+| anything else | That frontmatter field. Use dots for nested fields: `.sort: meta.order`.              |
+
+- The direction is `asc` (A to Z, oldest first, smallest first) unless you write `desc`.
+- Dates and numbers compare as dates and numbers, so `2` sorts before `10`.
+- Several keys, separated by commas, sort by the first and break ties with the
+  next: `.sort: blog.sticky desc, date desc` puts sticky blog posts on top,
+  each group newest first.
+- Pages without a value go last for that key, in either direction, and are
+  ordered by the next key. A `false` value counts as no value, so pages with
+  `sticky: false` sort with those that don't say. Final ties go by name.
+- A subfolder sorts by its landing page's frontmatter.
+- Only entries the file doesn't list are sorted. Listed entries keep their
+  place, so you can pin a page above or below the sorted ones with `...`.
+- A setting covers its own folder, not the folders below it. To sort every
+  folder the same way, pass the [`sort` option](#options); a folder's own
+  `.sort` still wins.
+
+#### Limiting
+
+A folder with hundreds of pages makes a sidebar too long to use, and
+VitePress sends the whole sidebar to every page. `.limit` keeps the first
+entries after sorting:
+
+```txt
+# docs/blog/.sidebar
+
+index.md:All posts
+.sort: blog.sticky desc, date desc
+.limit: 10
+.more: Older posts
+```
+
+- Only entries the file doesn't list count toward the limit, and listed
+  entries always show. Above, "All posts" plus the 10 first in sort order.
+- `.more: Text` ends the list with a link to the folder's landing page, but
+  only when entries were left out. Leave it out for no link: the blog above
+  already links its landing page as "All posts".
+- `.limit: 0` means no limit. The [`limit` and `more` options](#options) set
+  both for every folder; a folder's own lines win.
 
 ### Heading groups
 

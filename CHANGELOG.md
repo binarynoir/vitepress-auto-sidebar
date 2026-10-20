@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-20
+
+### Added
+
+- `.sort: key [asc|desc], …` setting in `.sidebar` files: order the entries a folder doesn't list by name, title, date or any frontmatter field (dotted for nested fields), with pages that have no value last. Several comma-separated keys break ties in turn, so `.sort: blog.sticky desc, date desc` keeps sticky posts on top
+- `sort` option: the same order for every folder, which a folder's `.sort` overrides
+- `.limit: n` and `.more: Text` settings, and `limit` and `more` options: show at most `n` of the entries a folder's config doesn't list, after sorting, and optionally end with a link to its landing page when some were left out
+- `.sidebar` settings follow one rule: a line starting with a dot is a setting, `.name` or `.name: value`. Unknown settings and bad values log a warning naming the file and line
+
 ## [0.8.1] - 2026-10-16
 
 ### Changed

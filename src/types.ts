@@ -63,9 +63,42 @@ export interface GenerateSidebarOptions {
    * formatted directory name. Default: false.
    */
   groupTitleFromIndex?: boolean;
+  /**
+   * How every folder orders the entries its `.sidebar` doesn't list: a key
+   * and an optional direction, written like the `.sort` setting, e.g.
+   * `'date desc'` or `'title'`. A folder's own `.sort` line wins.
+   * Default: `'name'` (alphabetical by file name).
+   */
+  sort?: string;
+  /**
+   * Most entries every folder shows of those its `.sidebar` doesn't list,
+   * after sorting, so a folder of 1,000 posts shows only the newest few. A
+   * folder's own `.limit` wins. Default: `0` (no limit).
+   */
+  limit?: number;
+  /**
+   * When a limit leaves entries out, end the folder's list with a link to its
+   * landing page, titled with this text, e.g. `'Older posts'`. A folder's own
+   * `.more` wins. Default: none (no link).
+   */
+  more?: string;
   /** Log what the generator is doing as it walks the docs tree. Default: false. */
   verbose?: boolean;
 }
+
+/**
+ * One key of a sort order, from a `.sort: key [asc|desc], …` setting or the `sort` option.
+ * `name` is the file or folder name, `title` the title shown in the sidebar,
+ * `date` the page's `date` (or `blog.date`), and anything else a frontmatter
+ * field, with dots for nested fields.
+ */
+export interface SidebarSortKey {
+  key: string;
+  direction: 'asc' | 'desc';
+}
+
+/** One or more sort keys, in order: each later key breaks ties in the ones before it. */
+export type SidebarSort = SidebarSortKey[];
 
 /**
  * Where a title came from: `name` is derived from a file or directory name,
@@ -90,6 +123,9 @@ export interface ResolvedSidebarOptions {
   stripTags: boolean;
   transformTitle?: TransformTitle;
   groupTitleFromIndex: boolean;
+  sort?: SidebarSort;
+  limit: number;
+  more?: string;
   verbose: boolean;
 }
 

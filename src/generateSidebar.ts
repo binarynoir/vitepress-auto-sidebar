@@ -11,11 +11,19 @@ import {
   parseSidebarDirectives,
   readSidebarConfigFile,
   readSidebarJsonOverride,
+  readSidebarSettings,
   sortItemsByOrder,
   type SidebarDirective,
 } from './sidebarConfig.js';
+import { createEntryComparator, limitEntries, parseSort, readSortValue } from './sorting.js';
 import { getErrorMessage } from './util.js';
-import type { GenerateSidebarOptions, ResolvedSidebarOptions, SidebarItem, SidebarMulti } from './types.js';
+import type {
+  GenerateSidebarOptions,
+  ResolvedSidebarOptions,
+  SidebarItem,
+  SidebarMulti,
+  SidebarSort,
+} from './types.js';
 
 interface GenerateContext {
   rootPath: string;
@@ -46,6 +54,9 @@ export function generateSidebar(rootPath: string, options: GenerateSidebarOption
     stripTags: options.stripTags ?? true,
     transformTitle: options.transformTitle,
     groupTitleFromIndex: options.groupTitleFromIndex ?? false,
+    sort: resolveSortOption(options.sort),
+    limit: resolveLimitOption(options.limit),
+    more: options.more?.trim() || undefined,
     verbose: options.verbose ?? false,
   };
 
@@ -95,6 +106,65 @@ export function generateSidebar(rootPath: string, options: GenerateSidebarOption
   }
 
   return sidebar;
+}
+
+/** Parses the `sort` option, warning (and keeping the default) if it can't be used. */
+function resolveSortOption(value: string | undefined): SidebarSort | undefined {
+  if (value === undefined) return undefined;
+  const sort = parseSort(value);
+  if (typeof sort !== 'string') return sort;
+  console.warn(`[vitepress-auto-sidebar] ignoring the sort option "${value}": ${sort}`);
+  return undefined;
+}
+
+/** Checks the `limit` option, warning (and keeping no limit) if it can't be used. */
+function resolveLimitOption(value: number | undefined): number {
+  if (value === undefined) return 0;
+  if (Number.isInteger(value) && value >= 0) return value;
+  console.warn(`[vitepress-auto-sidebar] ignoring the limit option ${value}: it needs a whole number, 0 for no limit`);
+  return 0;
+}
+
+/**
+ * Cuts a folder's sorted entries to its `.limit` (or the `limit` option),
+ * counting only the files and folders its `.sidebar` doesn't list.
+ */
+function limitFolderEntries(
+  ctx: GenerateContext,
+  dirPath: string,
+  names: string[],
+  directives: SidebarDirective[],
+  isEntry: (name: string) => boolean,
+): { names: string[]; truncated: boolean; more?: string } {
+  const settings = readSidebarSettings(path.posix.join(ctx.rootPath, dirPath), ctx.options.configFilenames);
+  const listed = new Set(directives.filter((directive) => !directive.hidden).map((directive) => directive.name));
+  const limit = settings.limit ?? ctx.options.limit;
+  const result = limitEntries(names, (name) => isEntry(name) && !listed.has(name), limit);
+  return { ...result, more: settings.more ?? ctx.options.more };
+}
+
+/**
+ * How a directory orders the entries its `.sidebar` doesn't list: its own
+ * `.sort` setting, else the `sort` option, else `undefined` (alphabetical).
+ * `titleOf` gives an entry's sidebar title, for sorting by `title`.
+ */
+function entryComparator(
+  ctx: GenerateContext,
+  dirPath: string,
+  titleOf: (name: string) => string,
+): ((a: string, b: string) => number) | undefined {
+  const fullDir = path.posix.join(ctx.rootPath, dirPath);
+  const sort = readSidebarSettings(fullDir, ctx.options.configFilenames).sort ?? ctx.options.sort;
+  if (!sort) return undefined;
+  return createEntryComparator(sort, (name, key) => {
+    if (key === 'title') return titleOf(name);
+    const entryPath = path.posix.join(fullDir, name);
+    // A folder sorts by its landing page's frontmatter.
+    const isDirectory = !name.endsWith('.md') && fs.existsSync(entryPath) && fs.statSync(entryPath).isDirectory();
+    const indexFile = isDirectory ? getIndexFilename(entryPath) : null;
+    const file = name.endsWith('.md') ? entryPath : indexFile ? path.posix.join(entryPath, indexFile) : null;
+    return file ? readSortValue(file, key) : undefined;
+  });
 }
 
 /** Builds the `{ [urlPrefix]: SidebarItem[] }` entry for one top-level docs directory. */
@@ -433,7 +503,21 @@ function collectChildEntries(
     allNames.push(item.name);
   }
 
-  const sortedNames = sortItemsByOrder(allNames, directives);
+  const titleOf = (name: string) =>
+    itemTypes.get(name) === 'directory'
+      ? resolveDirectoryTitle(ctx, path.posix.join(dirPath, name), ctx.titles.fromName(name))
+      : (explicitTitle(ctx, titleOverrides.get(name), path.posix.join(fullDir, name)) ?? ctx.titles.fromName(name));
+  const {
+    names: sortedNames,
+    truncated,
+    more,
+  } = limitFolderEntries(
+    ctx,
+    dirPath,
+    sortItemsByOrder(allNames, directives, entryComparator(ctx, dirPath, titleOf)),
+    directives,
+    (name) => itemTypes.get(name) === 'file' || itemTypes.get(name) === 'directory',
+  );
 
   const results: SidebarItem[] = [];
   // The `[Heading]` group entries currently go into, once one has been seen.
@@ -473,6 +557,12 @@ function collectChildEntries(
     }
   }
 
+  // Entries were left out: end with a link to the landing page, where they can all be found.
+  const indexFile = truncated && more ? getIndexFilename(fullDir) : null;
+  if (indexFile && !isExcluded(path.posix.join(dirPath, indexFile), ctx.exclusions)) {
+    place({ text: ctx.titles.fromText(more!, 'config'), link: toUrlDir(dirPath) });
+  }
+
   return { items: results, deferredGroups, headingGroups: headingGroups.filter((group) => group.items!.length) };
 }
 
@@ -504,7 +594,10 @@ function listChildDirectories(ctx: GenerateContext, dirPath: string, directives:
     console.error(`[vitepress-auto-sidebar] failed to read ${fullDir}: ${getErrorMessage(error)}`);
   }
 
-  return sortItemsByOrder(dirs, directives);
+  const titleOf = (name: string) =>
+    resolveDirectoryTitle(ctx, path.posix.join(dirPath, name), ctx.titles.fromName(name));
+  const sorted = sortItemsByOrder(dirs, directives, entryComparator(ctx, dirPath, titleOf));
+  return limitFolderEntries(ctx, dirPath, sorted, directives, () => true).names;
 }
 
 /**

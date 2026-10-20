@@ -1,8 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { readFrontmatter } from './frontmatter.js';
+import { parseLimit, parseMore, parseSort } from './sorting.js';
 import { getErrorMessage } from './util.js';
-import type { SidebarFrontmatter, SidebarItem, SidebarMulti } from './types.js';
+import type { SidebarFrontmatter, SidebarItem, SidebarMulti, SidebarSort } from './types.js';
 
 /**
  * One parsed line from a `.sidebar` config file.
@@ -21,6 +22,8 @@ import type { SidebarFrontmatter, SidebarItem, SidebarMulti } from './types.js';
  *                                  sorted alphabetically
  *   [Group Title]                  start a heading group: what follows, up to the
  *                                  next heading, is shown under this title
+ *
+ * Lines starting with `.` are folder settings, not entries; see `SidebarSettings`.
  */
 export interface SidebarDirective {
   name: string;
@@ -49,55 +52,134 @@ const WEB_LINK_RE =
 const QUOTED_TITLE_RE = /^([^:]+):\s*(?:"([^"]+)"|'([^']+)')$/;
 
 export function parseSidebarDirectives(rawLines: string[]): SidebarDirective[] {
-  return rawLines.map((rawLine) => {
-    let item = rawLine.trim();
-    let hidden = false;
+  return rawLines
+    .filter((rawLine) => !isSettingLine(rawLine))
+    .map((rawLine) => {
+      let item = rawLine.trim();
+      let hidden = false;
 
-    const headingMatch = item.match(HEADING_RE);
-    if (headingMatch) {
-      return { name: item, title: headingMatch[1].trim(), isHeading: true };
+      const headingMatch = item.match(HEADING_RE);
+      if (headingMatch) {
+        return { name: item, title: headingMatch[1].trim(), isHeading: true };
+      }
+
+      if (item.startsWith('-')) {
+        hidden = true;
+        item = item.substring(1).trim();
+      }
+
+      const isRootLevel = item.startsWith('ROOT=');
+      if (isRootLevel) item = item.substring('ROOT='.length);
+
+      const webLinkMatch = item.match(WEB_LINK_RE);
+      if (webLinkMatch) {
+        const url = webLinkMatch[2] || webLinkMatch[3];
+        const title = (webLinkMatch[4] || webLinkMatch[5] || webLinkMatch[6]).trim();
+        return { name: url, title, url, isWebLink: true, isRootLevel, hidden };
+      }
+
+      const quotedMatch = item.match(QUOTED_TITLE_RE);
+      if (quotedMatch) {
+        return {
+          name: quotedMatch[1].trim(),
+          title: (quotedMatch[2] || quotedMatch[3]).trim(),
+          isRootLevel,
+          hidden,
+        };
+      }
+
+      const parts = item.split(':');
+      if (parts.length > 1) {
+        return { name: parts[0].trim(), title: parts.slice(1).join(':').trim(), isRootLevel, hidden };
+      }
+
+      return { name: item, isRootLevel, hidden };
+    });
+}
+
+/**
+ * A folder's settings, from the `.sidebar` lines that start with a dot:
+ * `.name` turns a setting on, `.name: value` gives it a value.
+ */
+export interface SidebarSettings {
+  /** `.hide`: leave this folder's own link out, but keep its children. */
+  hide: boolean;
+  /** `.hideall` (or `.hide-all`): leave this folder and everything in it out. */
+  skip: boolean;
+  /** `.sort: key [asc|desc], …`: how the entries this file doesn't list are ordered. */
+  sort?: SidebarSort;
+  /** `.limit: n`: most entries shown of those this file doesn't list, after sorting. `0` for no limit. */
+  limit?: number;
+  /** `.more: Text`: when `.limit` leaves entries out, end with a link to the landing page, titled `Text`. */
+  more?: string;
+}
+
+// `.name` or `.name: value`. A file named in the folder starts with a letter,
+// digit or `-`, never a dot (dotfiles are skipped), so the two can't collide.
+const SETTING_RE = /^\.([a-z][\w-]*)\s*(?::\s*(.*))?$/i;
+
+/** Whether a `.sidebar` line is a setting (`.hide`, `.sort: date desc`) rather than an entry. */
+export function isSettingLine(line: string): boolean {
+  return SETTING_RE.test(line.trim());
+}
+
+type SettingResult = { settings: Partial<SidebarSettings> } | { problem: string };
+
+/** Reads one setting line. Every setting the `.sidebar` format knows is handled here. */
+function parseSettingLine(line: string): SettingResult {
+  const [, rawName, rawValue] = SETTING_RE.exec(line.trim())!;
+  const name = rawName.toLowerCase();
+  const value = rawValue?.trim() ?? '';
+  switch (name) {
+    case 'hide':
+      return value ? { problem: '.hide takes no value' } : { settings: { hide: true } };
+    case 'hideall':
+    case 'hide-all':
+      return value ? { problem: `.${name} takes no value` } : { settings: { skip: true } };
+    case 'sort': {
+      const sort = parseSort(value);
+      return typeof sort === 'string' ? { problem: sort } : { settings: { sort } };
     }
-
-    if (item.startsWith('-')) {
-      hidden = true;
-      item = item.substring(1).trim();
+    case 'limit': {
+      const limit = parseLimit(value);
+      return typeof limit === 'string' ? { problem: limit } : { settings: { limit } };
     }
-
-    const isRootLevel = item.startsWith('ROOT=');
-    if (isRootLevel) item = item.substring('ROOT='.length);
-
-    const webLinkMatch = item.match(WEB_LINK_RE);
-    if (webLinkMatch) {
-      const url = webLinkMatch[2] || webLinkMatch[3];
-      const title = (webLinkMatch[4] || webLinkMatch[5] || webLinkMatch[6]).trim();
-      return { name: url, title, url, isWebLink: true, isRootLevel, hidden };
+    case 'more': {
+      const more = parseMore(value);
+      return more ? { settings: { more } } : { problem: 'it needs the link text, e.g. ".more: Older posts"' };
     }
+    // @binarynoir/vitepress-auto-navbar's settings. The navbar can read `.sidebar`
+    // files too, so they are expected here and left to it.
+    case 'link':
+    case 'inherit':
+      return { settings: {} };
+    default:
+      return { problem: `.${rawName} is not a setting (known settings: .sort, .limit, .more, .hide, .hideall)` };
+  }
+}
 
-    const quotedMatch = item.match(QUOTED_TITLE_RE);
-    if (quotedMatch) {
-      return {
-        name: quotedMatch[1].trim(),
-        title: (quotedMatch[2] || quotedMatch[3]).trim(),
-        isRootLevel,
-        hidden,
-      };
-    }
-
-    const parts = item.split(':');
-    if (parts.length > 1) {
-      return { name: parts[0].trim(), title: parts.slice(1).join(':').trim(), isRootLevel, hidden };
-    }
-
-    return { name: item, isRootLevel, hidden };
-  });
+/** Collects a folder's settings from its `.sidebar` lines. Lines that can't be used are ignored. */
+export function parseSidebarSettings(lines: string[]): SidebarSettings {
+  const settings: SidebarSettings = { hide: false, skip: false };
+  for (const line of lines) {
+    if (!isSettingLine(line)) continue;
+    const result = parseSettingLine(line);
+    if ('settings' in result) Object.assign(settings, result.settings);
+  }
+  return settings;
 }
 
 /**
  * Why a `.sidebar` line can't be used as written, or `null` if it can: a link
- * that isn't `URL:Title`, or a title whose quotes don't match. Such a line
- * would otherwise be dropped from the sidebar, or keep its stray quotes.
+ * that isn't `URL:Title`, a title whose quotes don't match, or a setting that
+ * is unknown or has a bad value. Such a line would otherwise be dropped from
+ * the sidebar, or keep its stray quotes.
  */
 export function directiveProblem(line: string): string | null {
+  if (isSettingLine(line)) {
+    const result = parseSettingLine(line);
+    return 'problem' in result ? result.problem : null;
+  }
   const [directive] = parseSidebarDirectives([line]);
   if (directive.isHeading || directive.isWebLink) return null;
   if (/https?:\/\//i.test(line)) {
@@ -122,12 +204,16 @@ function directiveKey(item: SidebarDirective): string {
  * Sorts `items` (file/dir names, or weblink URLs) according to already-parsed
  * `.sidebar` entries. Items named explicitly before `...` come first (in
  * listed order), items named after `...` come last, and everything else is
- * inserted alphabetically at the `...` marker (or appended alphabetically if
- * there's no marker).
+ * inserted at the `...` marker (or appended if there's no marker), in
+ * `compare` order: alphabetical by default, or a folder's `.sort` setting.
  */
-export function sortItemsByOrder(items: string[], directives: SidebarDirective[]): string[] {
+export function sortItemsByOrder(
+  items: string[],
+  directives: SidebarDirective[],
+  compare?: (a: string, b: string) => number,
+): string[] {
   const parsed = directives.filter((i) => !i.hidden);
-  if (!parsed.length) return items;
+  if (!parsed.length) return compare ? [...items].sort(compare) : items;
 
   const remaining = new Set(items);
   const ellipsisIndex = parsed.findIndex((i) => i.name === '...');
@@ -141,7 +227,7 @@ export function sortItemsByOrder(items: string[], directives: SidebarDirective[]
         remaining.delete(key);
       }
     }
-    return [...result, ...[...remaining].sort()];
+    return [...result, ...[...remaining].sort(compare)];
   }
 
   const before = parsed.slice(0, ellipsisIndex);
@@ -159,7 +245,7 @@ export function sortItemsByOrder(items: string[], directives: SidebarDirective[]
   }
 
   const middle = items.filter((item) => !namedBefore.has(item) && !namedAfter.has(item) && remaining.has(item));
-  middle.sort();
+  middle.sort(compare);
   for (const item of middle) remaining.delete(item);
   result.push(...middle);
 
@@ -171,7 +257,7 @@ export function sortItemsByOrder(items: string[], directives: SidebarDirective[]
     }
   }
 
-  result.push(...[...remaining].sort());
+  result.push(...[...remaining].sort(compare));
   return result;
 }
 
@@ -212,8 +298,8 @@ export function readSidebarConfigFile(directoryPath: string, configFilenames: st
   return [];
 }
 
-/** Reads `.hide` / `.hideall` directives out of a directory's `.sidebar` file. */
-export function checkHideDirective(directoryPath: string, configFilenames: string[]): { hide: boolean; skip: boolean } {
+/** Reads a directory's settings (`.hide`, `.hideall`, `.sort`, …) out of its `.sidebar` file. */
+export function readSidebarSettings(directoryPath: string, configFilenames: string[]): SidebarSettings {
   try {
     for (const filename of configFilenames) {
       const configFilePath = path.posix.join(directoryPath, filename);
@@ -224,17 +310,18 @@ export function checkHideDirective(directoryPath: string, configFilenames: strin
         .split('\n')
         .map((line) => line.trim())
         .filter((line) => line && !line.startsWith('#'));
-
-      if (lines.includes('.hideall') || lines.includes('.hide-all')) return { hide: false, skip: true };
-      if (lines.includes('.hide')) return { hide: true, skip: false };
+      return parseSidebarSettings(lines);
     }
-    return { hide: false, skip: false };
   } catch (error) {
-    console.error(
-      `[vitepress-auto-sidebar] failed to check hide directive in ${directoryPath}: ${getErrorMessage(error)}`,
-    );
-    return { hide: false, skip: false };
+    console.error(`[vitepress-auto-sidebar] failed to read settings in ${directoryPath}: ${getErrorMessage(error)}`);
   }
+  return { hide: false, skip: false };
+}
+
+/** Reads `.hide` / `.hideall` out of a directory's `.sidebar` file. */
+export function checkHideDirective(directoryPath: string, configFilenames: string[]): { hide: boolean; skip: boolean } {
+  const { hide, skip } = readSidebarSettings(directoryPath, configFilenames);
+  return skip ? { hide: false, skip: true } : { hide, skip: false };
 }
 
 /**

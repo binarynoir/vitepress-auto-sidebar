@@ -22,6 +22,14 @@ export interface GenerateSidebarOptions {
   configFilenames?: string[];
   /** Filenames checked for per-directory exclusion rules. Default: ['.exclude']. */
   excludeFilenames?: string[];
+  /**
+   * Frontmatter keys that hide a page when they are `true`, such as
+   * `['draft']`, or `['draft', 'blog.draft']` to include
+   * `@binarynoir/vitepress-blog` drafts. Dotted keys read nested values. A
+   * folder whose landing page is hidden loses its link. Pass the same list to
+   * `@binarynoir/vitepress-exclude` to keep those pages out of the build. Default: `[]`.
+   */
+  excludeFrontmatter?: string[];
   /** Initial `collapsed` state applied to generated section headers. Default: false. */
   collapsed?: boolean;
   /**
@@ -116,6 +124,7 @@ export interface ResolvedSidebarOptions {
   maxTitleLength: number;
   configFilenames: string[];
   excludeFilenames: string[];
+  excludeFrontmatter: string[];
   collapsed: boolean;
   flattenSinglePage: boolean;
   titleReplacements: Record<string, string>;

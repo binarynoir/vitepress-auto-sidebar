@@ -95,6 +95,7 @@ non-page content.
 | `maxTitleLength`      | `50`           | Truncate generated titles beyond this length.                                                                                                                                                                                  |
 | `configFilenames`     | `['.sidebar']` | Filenames checked for per-directory ordering config.                                                                                                                                                                           |
 | `excludeFilenames`    | `['.exclude']` | Filenames checked for per-directory exclusion rules.                                                                                                                                                                           |
+| `excludeFrontmatter`  | `[]`           | Frontmatter keys that hide a page when `true`, such as `['draft', 'blog.draft']`. See [Drafts in frontmatter](#drafts-in-frontmatter).                                                                                         |
 | `collapsed`           | `false`        | Initial `collapsed` state applied to generated section headers (the ones that still have `items` after flattening, see below).                                                                                                 |
 | `flattenSinglePage`   | `true`         | Collapse a subdirectory into a plain link in its parent group instead of its own sibling group, when it has only one visible entry (typically just its landing page). See [Grouping subdirectories](#grouping-subdirectories). |
 | `titleReplacements`   | `{}`           | Words to replace in titles made from file and folder names, e.g. `{ github: "GitHub" }`. See [Titles](#titles).                                                                                                                |
@@ -421,6 +422,27 @@ internal-*.md
   everything under it).
 - `*` and `?` are supported as glob wildcards.
 - A lone `.` excludes the directory the `.exclude` file itself lives in.
+
+### Drafts in frontmatter
+
+A page can hide itself, too. List frontmatter keys with `excludeFrontmatter`,
+and any page that sets one of them to `true` is left out of the sidebar:
+
+```ts
+generateSidebar(docsRoot, { excludeFrontmatter: ['draft', 'blog.draft'] });
+```
+
+Only `true` counts, dotted keys read nested values (`blog.draft` for
+[`@binarynoir/vitepress-blog`](https://binarynoir.tech/plugins/blog/) posts),
+and a folder whose landing page is hidden loses its link. Pass the same list to
+[`@binarynoir/vitepress-exclude`](https://binarynoir.tech/plugins/exclude/) to
+keep those pages out of the build, so the sidebar never links to a page that
+isn't there. Turn it on for builds only to keep previewing drafts in
+`vitepress dev`:
+
+```ts
+const excludeFrontmatter = process.env.NODE_ENV === 'production' ? ['draft'] : [];
+```
 
 ## `sidebar.json` escape hatch
 

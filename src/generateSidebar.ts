@@ -47,6 +47,7 @@ export function generateSidebar(rootPath: string, options: GenerateSidebarOption
     maxTitleLength: options.maxTitleLength ?? 50,
     configFilenames: options.configFilenames ?? ['.sidebar'],
     excludeFilenames: options.excludeFilenames ?? ['.exclude'],
+    excludeFrontmatter: options.excludeFrontmatter ?? [],
     collapsed: options.collapsed ?? false,
     flattenSinglePage: options.flattenSinglePage ?? true,
     titleReplacements: options.titleReplacements ?? {},
@@ -63,7 +64,7 @@ export function generateSidebar(rootPath: string, options: GenerateSidebarOption
   const ctx: GenerateContext = {
     rootPath,
     options: resolved,
-    exclusions: createExclusionContext(rootPath, resolved.excludeFilenames),
+    exclusions: createExclusionContext(rootPath, resolved.excludeFilenames, resolved.excludeFrontmatter),
     titles: createTitles(resolved),
   };
 

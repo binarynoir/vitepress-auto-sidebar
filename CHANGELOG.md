@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-10-20
+
 ### Fixed
 
 - Sorting by a date with a time (`.sort: date desc`) no longer depends on the build machine's time zone. `2026-10-20 14:30` and `2026-10-20T14:30` are read as UTC, offsets (`-04:00`, `Z`) as written, and impossible dates (`2026-02-30`) are no longer treated as dates. Pages from the same day sort by their times

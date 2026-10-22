@@ -480,6 +480,185 @@ describe('[Heading] groups', () => {
   });
 });
 
+describe('blog option', () => {
+  /** A blog post page, with `blog` frontmatter. */
+  const post = (title: string, fields: string) =>
+    `---\ntitle: ${title}\nblog:\n  ${fields.split('\n').join('\n  ')}\n---\n`;
+  const blogPage = (title: string, settings: string) =>
+    `---\ntitle: ${title}\nblog-index:\n  ${settings.split('\n').join('\n  ')}\n---\n`;
+
+  const tree: Tree = {
+    blog: {
+      'index.md': blogPage('Blog', 'scope: site\nfolders: ./'),
+      'old.md': post('Old', 'date: 2026-01-01'),
+      'new.md': post('New', 'date: 2026-03-01'),
+      team: {
+        'index.md': blogPage('Team', 'layout: list'),
+        'site.md': post('Site', 'date: 2026-02-01\nscope: site'),
+        'global.md': post('Global', 'date: 2026-04-01\nscope: global'),
+        'local.md': post('Local', 'date: 2026-05-01'),
+        'pinned.md': post('Pinned', 'date: 2025-01-01\npinned: true'),
+      },
+    },
+  };
+
+  const texts = (items: { text: string }[] | undefined) => (items ?? []).map((item) => item.text);
+
+  it('lists site-wide posts in the main blog and in their own section, newest first', () => {
+    const sidebar = build(tree, { blog: true, groupTitleFromIndex: true });
+    const [main, team] = sidebar['/blog/'];
+    expect(texts(main.items)).toEqual(['Blog', 'Global', 'New', 'Site', 'Old']);
+    expect(main.items?.find((item) => item.text === 'Global')?.link).toBe('/blog/team/global.md');
+    expect(texts(team.items)).toEqual(['Team', 'Pinned', 'Local', 'Global', 'Site']);
+  });
+
+  it('does the same for blogs nested inside a group', () => {
+    const sidebar = build(
+      { plugins: { 'index.md': '# Plugins', demo: tree.blog } },
+      { blog: true, groupTitleFromIndex: true },
+    );
+    const demo = sidebar['/plugins/'].find((item) => item.text === 'Blog');
+    expect(texts(demo?.items)).toEqual(['Blog', 'Global', 'New', 'Site', 'Old', 'Team']);
+    const team = demo?.items?.find((item) => item.text === 'Team');
+    expect(texts(team?.items)).toEqual(['Team', 'Pinned', 'Local', 'Global', 'Site']);
+  });
+
+  it('leaves blogs alone without the option', () => {
+    const sidebar = build(tree, { groupTitleFromIndex: true });
+    const [main, team] = sidebar['/blog/'];
+    expect(texts(main.items)).toEqual(['Blog', 'New', 'Old']);
+    expect(texts(team.items)).toEqual(['Team', 'Global', 'Local', 'Pinned', 'Site']);
+  });
+
+  it("keeps a folder's .sort and .limit", () => {
+    const sidebar = build(
+      { blog: { ...(tree.blog as Tree), '.sidebar': 'index.md\n.sort: title\n.limit: 2' } },
+      { blog: true, groupTitleFromIndex: true },
+    );
+    expect(texts(sidebar['/blog/'][0].items)).toEqual(['Blog', 'Global', 'New']);
+  });
+
+  it('leaves out excluded and draft posts', () => {
+    const sidebar = build(
+      {
+        blog: {
+          ...(tree.blog as Tree),
+          '.exclude': 'team/site.md',
+          team: {
+            ...((tree.blog as Tree).team as Tree),
+            'draft.md': post('Draft', 'date: 2026-06-01\nscope: site\ndraft: true'),
+          },
+        },
+      },
+      { blog: true, groupTitleFromIndex: true, excludeFrontmatter: ['blog.draft'] },
+    );
+    expect(texts(sidebar['/blog/'][0].items)).toEqual(['Blog', 'Global', 'New', 'Old']);
+  });
+
+  it('pulls posts only into a main blog, from the folders it covers', () => {
+    const sidebar = build(
+      {
+        blog: { 'index.md': blogPage('Blog', 'scope: site'), 'here.md': post('Here', 'date: 2026-01-01') },
+        news: {
+          'index.md': blogPage('News', 'layout: list'),
+          'local.md': post('Local', 'date: 2026-01-01'),
+          sub: { 'index.md': '# Sub', 'a.md': post('Away', 'date: 2026-02-01\nscope: site'), 'b.md': '# B' },
+        },
+        guide: { 'index.md': '# Guide', 'page.md': '---\nblog:\n  scope: site\n---\n# Page' },
+      },
+      { blog: true },
+    );
+    // A main blog with no folders covers the whole site.
+    expect(texts(sidebar['/blog/'][0].items)).toEqual(['Blog', 'Away', 'Here', 'Page']);
+    expect(sidebar['/blog/'][0].items?.[1].link).toBe('/news/sub/a.md');
+    // A section blog doesn't pull posts up from its subfolders.
+    expect(texts(sidebar['/news/'][0].items)).toEqual(['News', 'Local']);
+  });
+
+  const withSidebar = (folder: string, lines: string): Tree => {
+    const blog = { ...(tree.blog as Tree) };
+    if (folder === 'blog') return { blog: { ...blog, '.sidebar': lines } };
+    return { blog: { ...blog, [folder]: { ...(blog[folder] as Tree), '.sidebar': lines } } };
+  };
+
+  it('groups posts by month with .group: month, newest first', () => {
+    const sidebar = build(withSidebar('team', 'index.md\n.group: month'), { blog: true, groupTitleFromIndex: true });
+    const team = sidebar['/blog/'][1];
+    expect(texts(team.items)).toEqual(['Team', 'January 2025', 'May 2026', 'April 2026', 'February 2026']);
+    expect(texts(team.items?.[2].items)).toEqual(['Local']);
+  });
+
+  it('groups posts by year with .group: year, including site-wide ones', () => {
+    const sidebar = build(withSidebar('blog', 'index.md\n.group: year'), { blog: true, groupTitleFromIndex: true });
+    const [main] = sidebar['/blog/'];
+    expect(texts(main.items)).toEqual(['Blog', '2026']);
+    expect(texts(main.items?.[1].items)).toEqual(['Global', 'New', 'Site', 'Old']);
+  });
+
+  it('keeps a month as written, whatever the offset, and leaves undated and listed pages ungrouped', () => {
+    const sidebar = build(
+      {
+        notes: {
+          'index.md': '# Notes',
+          '.sidebar': 'index.md\nkept.md\n.sort: date desc\n.group: month',
+          'late.md': '---\ndate: 2026-10-31T23:30:00-04:00\n---\n# Late',
+          'early.md': '---\ndate: 2026-11-01\n---\n# Early',
+          'kept.md': '---\ndate: 2026-11-02\n---\n# Kept',
+          'undated.md': '# Undated',
+        },
+      },
+      {},
+    );
+    const [notes] = sidebar['/notes/'];
+    // Late is newer than Early (03:30 on Nov 1 UTC), yet stays in October, the month it was written in.
+    expect(texts(notes.items)).toEqual(['Notes', 'Kept', 'October 2026', 'November 2026', 'Undated']);
+    expect(texts(notes.items?.[2].items)).toEqual(['Late']);
+  });
+
+  it('groups site-wide posts by the section blog they came from with .group: blog', () => {
+    const sidebar = build(
+      {
+        blog: {
+          'index.md': blogPage('Blog', 'scope: site'),
+          '.sidebar': 'index.md\n.group: blog',
+          'here.md': post('Here', 'date: 2026-01-01'),
+        },
+        news: {
+          'index.md': blogPage('News', 'layout: list'),
+          'a.md': post('A', 'date: 2026-03-01\nscope: site'),
+          'b.md': post('B', 'date: 2026-02-01\nscope: site'),
+        },
+        guide: { 'index.md': '# Guide', 'page.md': '---\nblog:\n  scope: site\n---\n# Page' },
+      },
+      { blog: true, groupTitleFromIndex: true },
+    );
+    const [main] = sidebar['/blog/'];
+    expect(texts(main.items)).toEqual(['Blog', 'News', 'Here', 'Page']);
+    expect(main.items?.[1].link).toBe('/news/');
+    expect(texts(main.items?.[1].items)).toEqual(['A', 'B']);
+  });
+
+  it("doesn't repeat posts from a section blog that is a subfolder, with .group: blog", () => {
+    const sidebar = build(withSidebar('blog', 'index.md\n.group: blog'), { blog: true, groupTitleFromIndex: true });
+    const [main, team] = sidebar['/blog/'];
+    expect(texts(main.items)).toEqual(['Blog', 'New', 'Old']);
+    expect(texts(team.items)).toEqual(['Team', 'Pinned', 'Local', 'Global', 'Site']);
+  });
+
+  it('links a post that is a folder landing page to its folder', () => {
+    const sidebar = build(
+      {
+        blog: {
+          'index.md': blogPage('Blog', 'scope: site\nfolders: ./'),
+          team: { 'index.md': blogPage('Team', 'layout: list'), launch: { 'index.md': post('Launch', 'scope: site') } },
+        },
+      },
+      { blog: true },
+    );
+    expect(sidebar['/blog/'][0].items?.find((item) => item.text === 'Launch')?.link).toBe('/blog/team/launch/');
+  });
+});
+
 describe('sidebar.json overrides', () => {
   it('uses a hand-authored sidebar.json verbatim for that section', () => {
     const custom = { '/products/': [{ text: 'Hand Rolled', link: '/products/' }] };

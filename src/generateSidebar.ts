@@ -15,6 +15,8 @@ import {
   sortItemsByOrder,
   type SidebarDirective,
 } from './sidebarConfig.js';
+import { BLOG_SORT, listSitePosts, readBlogIndex, toPageUrl } from './blog.js';
+import { findEntryGroup, type EntryGroup } from './grouping.js';
 import { createEntryComparator, limitEntries, parseSort, readSortValue } from './sorting.js';
 import { getErrorMessage } from './util.js';
 import type {
@@ -58,6 +60,7 @@ export function generateSidebar(rootPath: string, options: GenerateSidebarOption
     sort: resolveSortOption(options.sort),
     limit: resolveLimitOption(options.limit),
     more: options.more?.trim() || undefined,
+    blog: options.blog ?? false,
     verbose: options.verbose ?? false,
   };
 
@@ -146,7 +149,8 @@ function limitFolderEntries(
 
 /**
  * How a directory orders the entries its `.sidebar` doesn't list: its own
- * `.sort` setting, else the `sort` option, else `undefined` (alphabetical).
+ * `.sort` setting, else (with the `blog` option) {@link BLOG_SORT} for a blog
+ * folder, else the `sort` option, else `undefined` (alphabetical).
  * `titleOf` gives an entry's sidebar title, for sorting by `title`.
  */
 function entryComparator(
@@ -155,7 +159,9 @@ function entryComparator(
   titleOf: (name: string) => string,
 ): ((a: string, b: string) => number) | undefined {
   const fullDir = path.posix.join(ctx.rootPath, dirPath);
-  const sort = readSidebarSettings(fullDir, ctx.options.configFilenames).sort ?? ctx.options.sort;
+  const sort =
+    readSidebarSettings(fullDir, ctx.options.configFilenames).sort ??
+    (ctx.options.blog && readBlogIndex(ctx.rootPath, dirPath) ? BLOG_SORT : ctx.options.sort);
   if (!sort) return undefined;
   return createEntryComparator(sort, (name, key) => {
     if (key === 'title') return titleOf(name);
@@ -490,6 +496,29 @@ function collectChildEntries(
     }
   }
 
+  const { group: groupBy } = readSidebarSettings(fullDir, ctx.options.configFilenames);
+  const folderTitle = (folder: string) =>
+    resolveDirectoryTitle(ctx, folder, ctx.titles.fromName(path.posix.basename(folder)));
+  const groupOf = (name: string): EntryGroup | null =>
+    groupBy ? findEntryGroup(ctx.rootPath, dirPath, name, groupBy, folderTitle) : null;
+
+  // A main blog's folder also lists the `scope: site` posts from the folders it covers.
+  if (ctx.options.blog) {
+    for (const name of listSitePosts(ctx.rootPath, dirPath, ctx.exclusions, isSkippedEntryName)) {
+      if (hiddenNames.has(name.toLowerCase())) continue;
+      // Grouped by blog, a post whose section blog is a subfolder here is already in that subfolder's group.
+      const folder = groupBy === 'blog' ? groupOf(name)?.folder : undefined;
+      if (
+        folder &&
+        path.posix.dirname(folder) === dirPath &&
+        !hiddenNames.has(path.posix.basename(folder).toLowerCase())
+      )
+        continue;
+      allNames.push(name);
+      itemTypes.set(name, 'file');
+    }
+  }
+
   for (const item of directives) {
     if (item.hidden || !item.isWebLink || item.isRootLevel || !item.url) continue;
     if (!allNames.includes(item.url)) {
@@ -525,6 +554,33 @@ function collectChildEntries(
   let currentHeading: SidebarItem | null = null;
   const place = (item: SidebarItem) => (currentHeading ? currentHeading.items!.push(item) : results.push(item));
 
+  // `.group` groups under the current heading, each placed where its first entry falls.
+  const listed = new Set(directives.filter((directive) => !directive.hidden).map((directive) => directive.name));
+  const entryGroups = new Map<string, SidebarItem>();
+  const placeInGroup = (name: string, item: SidebarItem) => {
+    const group = listed.has(name) ? null : groupOf(name);
+    if (!group) {
+      place(item);
+      return;
+    }
+    let groupItem = entryGroups.get(group.key);
+    if (!groupItem) {
+      // A blog group links to its section blog's page.
+      const { folder } = group;
+      const indexFile = folder ? getIndexFilename(path.posix.join(ctx.rootPath, folder)) : null;
+      const linked = folder && indexFile && !isExcluded(path.posix.join(folder, indexFile), ctx.exclusions);
+      groupItem = {
+        text: group.text,
+        ...(linked ? { link: toUrlDir(folder) } : {}),
+        items: [],
+        collapsed: ctx.options.collapsed,
+      };
+      entryGroups.set(group.key, groupItem);
+      place(groupItem);
+    }
+    groupItem.items!.push(item);
+  };
+
   for (const name of sortedNames) {
     const type = itemTypes.get(name);
 
@@ -535,10 +591,11 @@ function collectChildEntries(
         collapsed: ctx.options.collapsed,
       };
       headingGroups.push(currentHeading);
+      entryGroups.clear();
     } else if (type === 'file') {
-      place({
+      placeInGroup(name, {
         text: explicitTitle(ctx, titleOverrides.get(name), path.posix.join(fullDir, name)) ?? ctx.titles.fromName(name),
-        link: toFileUrl(dirPath, name),
+        link: toPageUrl(path.posix.join(dirPath, name)),
       });
     } else if (type === 'weblink') {
       place({ text: ctx.titles.fromText(titleOverrides.get(name) ?? name, 'config'), link: name });
@@ -662,8 +719,4 @@ function isSkippedEntryName(name: string): boolean {
 
 function toUrlDir(fsDir: string): string {
   return `/${fsDir}/`.replace(/\/+/g, '/');
-}
-
-function toFileUrl(dirPath: string, filename: string): string {
-  return `/${path.posix.join(dirPath, filename)}`.replace(/\/+/g, '/');
 }

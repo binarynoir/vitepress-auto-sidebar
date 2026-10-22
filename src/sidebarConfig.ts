@@ -1,9 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { readFrontmatter } from './frontmatter.js';
-import { parseLimit, parseMore, parseSort } from './sorting.js';
+import { parseGroupBy, parseLimit, parseMore, parseSort } from './sorting.js';
 import { getErrorMessage } from './util.js';
-import type { SidebarFrontmatter, SidebarItem, SidebarMulti, SidebarSort } from './types.js';
+import type { SidebarFrontmatter, SidebarGroupBy, SidebarItem, SidebarMulti, SidebarSort } from './types.js';
 
 /**
  * One parsed line from a `.sidebar` config file.
@@ -112,6 +112,8 @@ export interface SidebarSettings {
   limit?: number;
   /** `.more: Text`: when `.limit` leaves entries out, end with a link to the landing page, titled `Text`. */
   more?: string;
+  /** `.group: year|month|blog`: put the entries this file doesn't list in groups. */
+  group?: SidebarGroupBy;
 }
 
 // `.name` or `.name: value`. A file named in the folder starts with a letter,
@@ -148,13 +150,19 @@ function parseSettingLine(line: string): SettingResult {
       const more = parseMore(value);
       return more ? { settings: { more } } : { problem: 'it needs the link text, e.g. ".more: Older posts"' };
     }
+    case 'group': {
+      const group = parseGroupBy(value);
+      return group ? { settings: { group } } : { problem: 'it needs year, month or blog, e.g. ".group: month"' };
+    }
     // @binarynoir/vitepress-auto-navbar's settings. The navbar can read `.sidebar`
     // files too, so they are expected here and left to it.
     case 'link':
     case 'inherit':
       return { settings: {} };
     default:
-      return { problem: `.${rawName} is not a setting (known settings: .sort, .limit, .more, .hide, .hideall)` };
+      return {
+        problem: `.${rawName} is not a setting (known settings: .sort, .limit, .more, .group, .hide, .hideall)`,
+      };
   }
 }
 

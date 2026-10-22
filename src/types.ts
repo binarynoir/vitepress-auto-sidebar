@@ -90,6 +90,15 @@ export interface GenerateSidebarOptions {
    * `.more` wins. Default: none (no link).
    */
   more?: string;
+  /**
+   * Follow `@binarynoir/vitepress-blog` scopes. A folder whose landing page
+   * is a blog (`blog-index`) and has no `.sort` lists its posts pinned first,
+   * then newest first, as the blog page does; and a main blog's folder
+   * (`blog-index: { scope: site }`) also lists the `scope: site` posts from
+   * the folders it covers, so a site-wide post shows in its own folder and in
+   * the main blog's. Default: false.
+   */
+  blog?: boolean;
   /** Log what the generator is doing as it walks the docs tree. Default: false. */
   verbose?: boolean;
 }
@@ -104,6 +113,13 @@ export interface SidebarSortKey {
   key: string;
   direction: 'asc' | 'desc';
 }
+
+/**
+ * How a folder groups the entries its `.sidebar` doesn't list, from a
+ * `.group` setting: by the year or month of their date, or (`blog`) by the
+ * section blog a main blog's site-wide post came from.
+ */
+export type SidebarGroupBy = 'year' | 'month' | 'blog';
 
 /** One or more sort keys, in order: each later key breaks ties in the ones before it. */
 export type SidebarSort = SidebarSortKey[];
@@ -135,6 +151,7 @@ export interface ResolvedSidebarOptions {
   sort?: SidebarSort;
   limit: number;
   more?: string;
+  blog: boolean;
   verbose: boolean;
 }
 

@@ -105,6 +105,7 @@ non-page content.
 | `sort`                | `'name'`       | How every folder orders the entries its `.sidebar` doesn't list, e.g. `'date desc'`. A folder's `.sort` setting wins. See [Settings](#settings).                                                                               |
 | `limit`               | `0`            | Most entries every folder shows of those its `.sidebar` doesn't list, after sorting. `0` for no limit. A folder's `.limit` wins. See [Limiting](#limiting).                                                                    |
 | `more`                | none           | When a limit leaves entries out, end with a link to the folder's landing page, titled with this text. A folder's `.more` wins.                                                                                                 |
+| `blog`                | `false`        | Follow [`@binarynoir/vitepress-blog`](https://binarynoir.tech/plugins/blog/) scopes: blog folders sort like the blog, and the main blog's folder also lists site-wide posts. See [Blogs](#blogs).                              |
 | `groupTitleFromIndex` | `false`        | Label a folder's group with its landing page's title before falling back to the folder name. See [Titles](#titles).                                                                                                            |
 | `verbose`             | `false`        | Log each directory as it's processed.                                                                                                                                                                                          |
 
@@ -301,6 +302,7 @@ Every setting is written the same way: `.name` turns it on, and
 | `.sort: key [asc\|desc], …` | Order the entries this file doesn't list by `key`. Default: `name`.                      |
 | `.limit: n`                 | Show at most `n` of the entries this file doesn't list, after sorting. `0` for no limit. |
 | `.more: Text`               | When `.limit` left entries out, end with a link to the landing page titled `Text`.       |
+| `.group: year\|month\|blog` | Put the entries this file doesn't list in groups. See [Grouping](#grouping).             |
 | `.hide`                     | Hide this folder's own link, but keep showing its children.                              |
 | `.hideall` (or `.hide-all`) | Leave this folder and everything under it out of the sidebar.                            |
 
@@ -368,6 +370,69 @@ index.md:All posts
   already links its landing page as "All posts".
 - `.limit: 0` means no limit. The [`limit` and `more` options](#options) set
   both for every folder; a folder's own lines win.
+
+#### Grouping
+
+`.group` puts the entries a folder's `.sidebar` doesn't list into groups,
+after sorting and `.limit`:
+
+```txt
+# docs/blog/.sidebar
+
+index.md:All posts
+.group: month
+```
+
+| Value   | Groups by                                                                                        |
+| ------- | ------------------------------------------------------------------------------------------------ |
+| `month` | The month of the page's `date` (or `blog.date`): "October 2026".                                 |
+| `year`  | The year of that date: "2026".                                                                   |
+| `blog`  | The section blog a site-wide post came from, with the [`blog` option](#blogs). See that section. |
+
+- Each group sits where its first entry falls, so with a newest-first
+  `.sort` the months run newest first too.
+- The month is the one the date is written in, whatever its offset: a post
+  dated `2026-10-31T23:30-04:00` stays in October.
+- Listed entries, subfolders and pages with no date stay outside the groups.
+- Groups follow the `collapsed` option. Within a `[Heading]`, groups start
+  afresh.
+
+#### Blogs
+
+With the `blog` option, the sidebar follows
+[`@binarynoir/vitepress-blog`](https://binarynoir.tech/plugins/blog/)'s
+scopes, so each blog's folder lists the posts its blog page lists:
+
+```ts
+generateSidebar(docsRoot, { blog: true });
+```
+
+- A folder whose landing page is a blog (`blog-index`) and has no `.sort`
+  lists its posts pinned first, then newest first, as the blog page does.
+- The main blog's folder (`blog-index: { scope: site }`) also lists every
+  `scope: site` (or `global`) post in the folders it covers, sorted in with
+  its own posts. So a site-wide post in a section blog shows in both: its
+  section's folder and the main blog's.
+- Those posts count toward the folder's `.limit`, and `.exclude` files and
+  `excludeFrontmatter` hide them as they hide any page.
+- `.group: blog` in the main blog's `.sidebar` puts those posts in one group
+  per section blog, titled and linked like that blog's folder; its own posts
+  stay outside the groups. A section blog whose folder sits right inside the
+  main blog's already has a group there, so its posts aren't repeated.
+
+```txt
+docs/news/
+├─ index.md         blog-index: { scope: site, folders: ./ }
+├─ hello.md         2026-10-01
+└─ team/
+   ├─ index.md      blog-index: { layout: list }
+   ├─ launch.md     2026-10-12, scope: site
+   └─ standup.md    2026-10-15
+```
+
+News lists Launch, then Hello; its Team group lists Standup, then Launch.
+In a blog nested deeper, where the Team group sits among the posts, list
+`team` after `...` in the folder's `.sidebar` to keep it below them.
 
 ### Heading groups
 

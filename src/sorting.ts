@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import { readFrontmatter } from './frontmatter.js';
-import type { SidebarSort, SidebarSortKey } from './types.js';
+import type { SidebarGroupBy, SidebarSort, SidebarSortKey } from './types.js';
 
 const DIRECTIONS = ['asc', 'desc'] as const;
 const EXAMPLE = 'e.g. ".sort: date desc" or ".sort: blog.sticky desc, date desc"';
@@ -143,6 +143,14 @@ export function parseLimit(value: string): number | string {
   const text = value.trim();
   if (!/^\d+$/.test(text)) return 'it needs a whole number of entries, e.g. ".limit: 10" (0 for no limit)';
   return Number(text);
+}
+
+const GROUP_BYS: readonly SidebarGroupBy[] = ['year', 'month', 'blog'];
+
+/** Parses a `.group` value: `year`, `month` or `blog`, or `null` if it is none of them. */
+export function parseGroupBy(value: string): SidebarGroupBy | null {
+  const lower = value.trim().toLowerCase();
+  return GROUP_BYS.find((groupBy) => groupBy === lower) ?? null;
 }
 
 /** Parses a `.more` value: the link text, bare or quoted. */

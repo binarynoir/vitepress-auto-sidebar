@@ -3,6 +3,7 @@ export { formatTitle, truncateTitle } from './formatTitle.js';
 export { stripTagSyntax } from './titles.js';
 export type {
   GenerateSidebarOptions,
+  SidebarGroupBy,
   SidebarItem,
   SidebarMulti,
   SidebarSort,

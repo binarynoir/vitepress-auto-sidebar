@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `.group: year|month|blog` setting: put the entries a folder's `.sidebar` doesn't list in groups by the year or month of their date, or (with the `blog` option) site-wide posts by the section blog they came from
+- `blog` option: follow `@binarynoir/vitepress-blog` scopes. A blog folder with no `.sort` lists its posts pinned first, then newest first, and the main blog's folder also lists the `scope: site` posts from the folders it covers, so a site-wide post shows in its own section and in the main blog
+
 ## [0.10.1] - 2026-10-22
 
 ### Changed

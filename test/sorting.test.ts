@@ -77,6 +77,9 @@ describe('.sidebar settings', () => {
     ['.sort', 'needs a key'],
     ['.sort: date sideways', 'not a direction'],
     ['.hide: yes', 'takes no value'],
+    ['.group: month', null],
+    ['.group: Blog', null],
+    ['.group: week', 'year, month or blog'],
     ['.colapsed', 'not a setting'],
     // Auto Navbar's settings, which a shared .sidebar file may carry.
     ['.link', null],

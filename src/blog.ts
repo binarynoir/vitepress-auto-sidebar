@@ -88,20 +88,34 @@ export function listSitePosts(
   if (blog?.scope !== 'site') return [];
 
   const found = new Set<string>();
+  // Folders already walked, by real path, so a symlink loop can't recurse forever.
+  const visited = new Set<string>();
   const walk = (folder: string) => {
-    let entries: fs.Dirent[];
+    let names: string[];
     try {
-      entries = fs.readdirSync(path.posix.join(rootPath, folder), { withFileTypes: true });
+      const folderPath = path.posix.join(rootPath, folder);
+      const realPath = fs.realpathSync(folderPath);
+      if (visited.has(realPath)) return;
+      visited.add(realPath);
+      names = fs.readdirSync(folderPath);
     } catch {
       return;
     }
-    for (const entry of entries) {
-      if (isSkipped(entry.name)) continue;
-      const relativePath = folder ? `${folder}/${entry.name}` : entry.name;
+    for (const name of names) {
+      if (isSkipped(name)) continue;
+      const relativePath = folder ? `${folder}/${name}` : name;
       if (isExcluded(relativePath, exclusions)) continue;
-      if (entry.isDirectory()) {
+      // statSync follows symlinks, so linked-in folders and pages count too,
+      // as they do for the rest of the sidebar.
+      let stat: fs.Stats;
+      try {
+        stat = fs.statSync(path.posix.join(rootPath, relativePath));
+      } catch {
+        continue;
+      }
+      if (stat.isDirectory()) {
         walk(relativePath);
-      } else if (entry.isFile() && entry.name.endsWith('.md') && folder !== dirPath) {
+      } else if (stat.isFile() && name.endsWith('.md') && folder !== dirPath) {
         if (isSitePost(path.posix.join(rootPath, relativePath))) found.add(relativePath);
       }
     }

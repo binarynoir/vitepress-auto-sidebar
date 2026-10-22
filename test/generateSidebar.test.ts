@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { generateSidebar } from '../src/generateSidebar.js';
 import { createFixture, removeFixture, type Tree } from './testUtils.js';
@@ -573,6 +575,19 @@ describe('blog option', () => {
     expect(sidebar['/blog/'][0].items?.[1].link).toBe('/news/sub/a.md');
     // A section blog doesn't pull posts up from its subfolders.
     expect(texts(sidebar['/news/'][0].items)).toEqual(['News', 'Local']);
+  });
+
+  it('finds site-wide posts in symlinked folders, and stops at symlink loops', () => {
+    root = createFixture({
+      blog: { 'index.md': blogPage('Blog', 'scope: site'), 'here.md': post('Here', 'date: 2026-01-01') },
+      '-repos': { app: { 'index.md': '# App', 'release.md': post('Release', 'date: 2026-02-01\nscope: site') } },
+      products: { 'index.md': '# Products' },
+    });
+    fs.symlinkSync(path.join(root, '-repos/app'), path.join(root, 'products/app'), 'dir');
+    fs.symlinkSync(path.join(root, 'products'), path.join(root, '-repos/app/loop'), 'dir');
+    const sidebar = generateSidebar(root, { blog: true });
+    expect(texts(sidebar['/blog/'][0].items)).toEqual(['Blog', 'Release', 'Here']);
+    expect(sidebar['/blog/'][0].items?.[1].link).toBe('/products/app/release.md');
   });
 
   const withSidebar = (folder: string, lines: string): Tree => {

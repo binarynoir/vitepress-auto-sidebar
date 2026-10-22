@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-10-22
+
 ### Fixed
 
 - `blog` option: the main blog's folder now finds `scope: site` posts in symlinked folders, as the rest of the sidebar does, and stops at symlink loops

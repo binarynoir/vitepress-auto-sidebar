@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-10-22
+
 ### Added
 
 - `.group: year|month|blog` setting: put the entries a folder's `.sidebar` doesn't list in groups by the year or month of their date, or (with the `blog` option) site-wide posts by the section blog they came from

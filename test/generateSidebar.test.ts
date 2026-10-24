@@ -101,6 +101,43 @@ describe('title resolution', () => {
     expect(item?.text).toBe('Getting Up and Running');
   });
 
+  it("prefers a blog post's blog.title over its page title", () => {
+    const sidebar = build({
+      blog: {
+        'README.md': '# Blog',
+        'launch.md': '---\ntitle: Launch notes\nblog:\n  title: We launched\n  date: 2026-10-20\n---\n# Launch',
+      },
+    });
+    const item = sidebar['/blog/'][0].items?.find((i) => i.link?.includes('launch'));
+    expect(item?.text).toBe('We launched');
+  });
+
+  it('ignores blog.title on a blog page (blog-index)', () => {
+    const sidebar = build({
+      blog: {
+        'README.md': '# Blog',
+        'news.md': '---\ntitle: News\nblog-index: {}\nblog:\n  title: Not this\n---\n',
+      },
+    });
+    const item = sidebar['/blog/'][0].items?.find((i) => i.link?.includes('news'));
+    expect(item?.text).toBe('News');
+  });
+
+  it('falls back from a blank blog.title, and reads a number as a title', () => {
+    const sidebar = build({
+      blog: {
+        'README.md': '# Blog',
+        'blank.md': "---\ntitle: Page title\nblog:\n  title: ' '\n---\n",
+        'year.md': '---\nblog:\n  title: 2026\n---\n# Year',
+        'plain.md': '---\ntitle: 404\n---\n# Not found',
+      },
+    });
+    const items = sidebar['/blog/'][0].items ?? [];
+    expect(items.find((i) => i.link?.includes('blank'))?.text).toBe('Page title');
+    expect(items.find((i) => i.link?.includes('year'))?.text).toBe('2026');
+    expect(items.find((i) => i.link?.includes('plain'))?.text).toBe('404');
+  });
+
   it('falls back to the first heading when there is no frontmatter title', () => {
     const sidebar = build({
       guides: { 'README.md': '# Guides', 'setup.md': '# Environment Setup\n\nBody text.' },

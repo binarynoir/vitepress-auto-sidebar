@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- A `@binarynoir/vitepress-blog` post's `blog.title` now titles it in the sidebar, as it does on its blog page, ahead of the page's `title` and `# Heading`. A blog page (`blog-index`) keeps its own `title`, as the blog does
+- A numeric `title` (`title: 404`) is now used as written instead of being skipped with a warning
+
 ## [0.11.1] - 2026-10-22
 
 ### Fixed

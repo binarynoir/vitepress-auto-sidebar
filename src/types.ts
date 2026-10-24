@@ -157,6 +157,10 @@ export interface ResolvedSidebarOptions {
 
 /** Frontmatter fields this generator looks at when resolving titles. */
 export interface SidebarFrontmatter {
-  title?: string;
+  title?: unknown;
   'section-title'?: string;
+  /** A `@binarynoir/vitepress-blog` post's settings; its `title` wins over the page's. */
+  blog?: { title?: unknown };
+  /** Marks a `@binarynoir/vitepress-blog` blog page, whose `blog.title` doesn't apply. */
+  'blog-index'?: unknown;
 }

@@ -359,16 +359,25 @@ export function isIndexFilename(filename: string): boolean {
   return lower === 'index.md' || lower === 'readme.md';
 }
 
+/** A frontmatter value as title text: a string trimmed, a number as written, anything else `''`. */
+function toTitleText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : typeof value === 'number' ? String(value) : '';
+}
+
 /**
- * Reads a markdown file's title, preferring frontmatter `title`, then falling
- * back to its first `# Heading`. Returns null if neither is present/readable.
+ * Reads a markdown file's title, preferring a `@binarynoir/vitepress-blog`
+ * post's `blog.title` (not on a blog page, which has `blog-index`), then
+ * frontmatter `title`, then falling back to its first `# Heading`. Returns
+ * null if none is present/readable.
  */
 export function getMarkdownTitle(filePath: string): string | null {
   try {
     const raw = fs.readFileSync(filePath, 'utf-8');
     const { data, content } = readFrontmatter(raw);
     const frontmatter = data as SidebarFrontmatter;
-    if (frontmatter.title?.trim()) return frontmatter.title.trim();
+    const blogTitle = frontmatter['blog-index'] ? '' : toTitleText(frontmatter.blog?.title);
+    const title = blogTitle || toTitleText(frontmatter.title);
+    if (title) return title;
 
     const heading = content.match(/^\s*#\s+(.+)$/m);
     if (heading) return heading[1].trim();

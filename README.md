@@ -600,7 +600,7 @@ Auto Sidebar is one of a family of open-source tools from BinaryNoir.
 - [Sidebar Accordion](https://binarynoir.tech/plugins/sidebar-accordion): one open sidebar group at a time, and a sidebar filter
 - [README Index](https://binarynoir.tech/plugins/readme-index/): `README.md` index pages for VuePress migrations
 
-**New:** [Blog](https://binarynoir.tech/plugins/blog/): posts anywhere, a main blog and section blogs, with RSS feeds
+**New:** [Blog for Vite](https://binarynoir.tech/plugins/vite-blog): a Markdown blog for a plain Vite site, with search, feeds and a strict CSP
 
 **See them all:** VitePress plugins, Vite plugins, editor extensions and command-line tools, with documentation and live demos, at **[binarynoir.tech](https://binarynoir.tech)**.
 

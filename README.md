@@ -8,11 +8,11 @@ A [VitePress 2](https://vitepress.dev) plugin that builds your sidebar
 config for you by scanning your docs folder, so you stop hand-maintaining
 `themeConfig.sidebar`.
 
-[Documentation and live demo](https://binarynoir.tech/plugins/auto-sidebar)
+[Documentation and live demo](https://binarynoir.com/plugins/auto-sidebar)
 
 [![Support me on Buy Me a Coffee](https://img.shields.io/badge/Support%20me-Buy%20Me%20a%20Coffee-orange?style=for-the-badge&logo=buy-me-a-coffee)](https://buymeacoffee.com/binarynoir)
 [![Support me on Ko-fi](https://img.shields.io/badge/Support%20me-Ko--fi-blue?style=for-the-badge&logo=ko-fi)](https://ko-fi.com/binarynoir)
-[![More tools](https://img.shields.io/badge/Website-binarynoir.tech-8c8c8c?style=for-the-badge)](https://binarynoir.tech)
+[![More tools](https://img.shields.io/badge/Website-binarynoir.com-8c8c8c?style=for-the-badge)](https://binarynoir.com)
 
 ## What this does
 
@@ -71,7 +71,7 @@ A directory's landing page — `index.md` if present, otherwise `README.md`
 link; every other `*.md` file becomes a child entry. VitePress itself only
 serves `index.md` at the directory URL: a `README.md` is served at
 `README.html`. For `README.md` landing pages, add
-[README Index](https://binarynoir.tech/plugins/readme-index/)
+[README Index](https://binarynoir.com/plugins/readme-index/)
 (`readmeRewrites` and `readmeLinks`), which serves them at the directory URL
 and points links to them there. A file's title is resolved, in order:
 
@@ -105,7 +105,7 @@ non-page content.
 | `sort`                | `'name'`       | How every folder orders the entries its `.sidebar` doesn't list, e.g. `'date desc'`. A folder's `.sort` setting wins. See [Settings](#settings).                                                                               |
 | `limit`               | `0`            | Most entries every folder shows of those its `.sidebar` doesn't list, after sorting. `0` for no limit. A folder's `.limit` wins. See [Limiting](#limiting).                                                                    |
 | `more`                | none           | When a limit leaves entries out, end with a link to the folder's landing page, titled with this text. A folder's `.more` wins.                                                                                                 |
-| `blog`                | `false`        | Follow [`@binarynoir/vitepress-blog`](https://binarynoir.tech/plugins/blog/) scopes: blog folders sort like the blog, and the main blog's folder also lists site-wide posts. See [Blogs](#blogs).                              |
+| `blog`                | `false`        | Follow [`@binarynoir/vitepress-blog`](https://binarynoir.com/plugins/blog/) scopes: blog folders sort like the blog, and the main blog's folder also lists site-wide posts. See [Blogs](#blogs).                               |
 | `groupTitleFromIndex` | `false`        | Label a folder's group with its landing page's title before falling back to the folder name. See [Titles](#titles).                                                                                                            |
 | `verbose`             | `false`        | Log each directory as it's processed.                                                                                                                                                                                          |
 
@@ -133,7 +133,7 @@ generateSidebar(docsRoot, {
 Titles an author wrote (a heading, `title` frontmatter, a `.sidebar` line) are
 never changed by `titleReplacements`.
 
-Every title has [markdown-tags](https://binarynoir.tech/plugins/markdown-tags/)
+Every title has [markdown-tags](https://binarynoir.com/plugins/markdown-tags/)
 syntax removed, so `# Design ((tag|draft))` is listed as "Design". Set
 `stripTags: false` to keep it.
 
@@ -308,7 +308,7 @@ Every setting is written the same way: `.name` turns it on, and
 
 An unknown setting, or one with a value it can't use, logs a warning naming
 the file and line, and is ignored.
-[Auto Navbar](https://binarynoir.tech/plugins/auto-navbar)'s own settings,
+[Auto Navbar](https://binarynoir.com/plugins/auto-navbar)'s own settings,
 `.link` and `.inherit`, are left to it, so one `.sidebar` file can serve
 both plugins. Auto Navbar reads `.sort` too, so one line orders the sidebar and
 the navbar dropdown alike.
@@ -400,7 +400,7 @@ index.md:All posts
 #### Blogs
 
 With the `blog` option, the sidebar follows
-[`@binarynoir/vitepress-blog`](https://binarynoir.tech/plugins/blog/)'s
+[`@binarynoir/vitepress-blog`](https://binarynoir.com/plugins/blog/)'s
 scopes, so each blog's folder lists the posts its blog page lists:
 
 ```ts
@@ -498,9 +498,9 @@ generateSidebar(docsRoot, { excludeFrontmatter: ['draft', 'blog.draft'] });
 ```
 
 Only `true` counts, dotted keys read nested values (`blog.draft` for
-[`@binarynoir/vitepress-blog`](https://binarynoir.tech/plugins/blog/) posts),
+[`@binarynoir/vitepress-blog`](https://binarynoir.com/plugins/blog/) posts),
 and a folder whose landing page is hidden loses its link. Pass the same list to
-[`@binarynoir/vitepress-exclude`](https://binarynoir.tech/plugins/exclude/) to
+[`@binarynoir/vitepress-exclude`](https://binarynoir.com/plugins/exclude/) to
 keep those pages out of the build, so the sidebar never links to a page that
 isn't there. Turn it on for builds only to keep previewing drafts in
 `vitepress dev`:
@@ -587,8 +587,8 @@ Pull requests are welcome too.
 ## More from BinaryNoir
 
 <p align="center">
-  <a href="https://binarynoir.tech">
-    <img alt="BinaryNoir" src="https://binarynoir.tech/logo-horizontal.png" width="320">
+  <a href="https://binarynoir.com">
+    <img alt="BinaryNoir" src="https://binarynoir.com/logo-horizontal.png" width="320">
   </a>
 </p>
 
@@ -596,16 +596,16 @@ Auto Sidebar is one of a family of open-source tools from BinaryNoir.
 
 **Pairs well with Auto Sidebar**
 
-- [Auto Navbar](https://binarynoir.tech/plugins/auto-navbar): navbar built from your folders
-- [Sidebar Accordion](https://binarynoir.tech/plugins/sidebar-accordion): one open sidebar group at a time, and a sidebar filter
-- [README Index](https://binarynoir.tech/plugins/readme-index/): `README.md` index pages for VuePress migrations
+- [Auto Navbar](https://binarynoir.com/plugins/auto-navbar): navbar built from your folders
+- [Sidebar Accordion](https://binarynoir.com/plugins/sidebar-accordion): one open sidebar group at a time, and a sidebar filter
+- [README Index](https://binarynoir.com/plugins/readme-index/): `README.md` index pages for VuePress migrations
 
-**New:** [Blog for Vite](https://binarynoir.tech/plugins/vite-blog): a Markdown blog for a plain Vite site, with search, feeds and a strict CSP
+**New:** [Blog for Vite](https://binarynoir.com/plugins/vite-blog): a Markdown blog for a plain Vite site, with search, feeds and a strict CSP
 
-**See them all:** VitePress plugins, Vite plugins, editor extensions and command-line tools, with documentation and live demos, at **[binarynoir.tech](https://binarynoir.tech)**.
+**See them all:** VitePress plugins, Vite plugins, editor extensions and command-line tools, with documentation and live demos, at **[binarynoir.com](https://binarynoir.com)**.
 
 <!-- binarynoir:more:end -->
 
 ## Author
 
-John Smith III, [BinaryNoir](https://binarynoir.tech). Thanks to all contributors and users for their support and feedback.
+John Smith III, [BinaryNoir](https://binarynoir.com). Thanks to all contributors and users for their support and feedback.
